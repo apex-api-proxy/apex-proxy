@@ -37,8 +37,6 @@ router.get('/apex', function(req, res, next) {
 	  console.error(error)
 	})
 
-	console.log('\nafter the block\n')
-
 	request.end();
 });
 
