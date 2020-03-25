@@ -15,25 +15,16 @@ router.get('/apex', function(req, res, next) {
 
 	let body = '';
 
-	console.log('options: ', options);
-
 	const request = https.request(options, response => {
 	  console.log(`statusCode: ${res.statusCode}`)
 
 	  response.on('data', d => {
-	  	console.log('type of d: ', typeof d);
-	    process.stdout.write(d)
 	    body += d;
 	  })
 
 	  response.on('end', () => {
-	  	console.log('executing the block...');
-
 	    try {
 	      const data = JSON.parse(body);
-	      // Write back something interesting to the user:
-	      console.log('\ndata in the block: \n', data)
-	      // response.write(typeof data);
 
 	      res.send(data);
 	    } catch (er) {
