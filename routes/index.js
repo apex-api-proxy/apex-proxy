@@ -1,28 +1,8 @@
 const express = require('express');
 const https = require('https');
-const uuid = require('uuid');
 const querystring = require('querystring');
 
 const router = express.Router();
-
-const appendApexCorrelationId = (headers) => {
-  let correlationIdHeaderName;
-
-  for (const h in headers) {
-    if (h.toLowerCase() === 'x-apex-correlation-id') {
-      correlationIdHeaderName = h;
-    }
-  }
-
-  if (
-    correlationIdHeaderName === undefined ||
-    !headers[correlationIdHeaderName]
-  ) {
-    return { ...headers, 'X-Apex-Correlation-ID': uuid.v4() };
-  }
-
-  return headers;
-};
 
 router.get('/*', (incomingRequest, outgoingResponse) => {
   const incomingRequestPathWithQuery =
@@ -33,7 +13,7 @@ router.get('/*', (incomingRequest, outgoingResponse) => {
     hostname: incomingRequest.headers['host'],
     port: 443,
     path: incomingRequestPathWithQuery,
-    headers: appendApexCorrelationId(incomingRequest.headers),
+    headers: incomingRequest.headers,
   };
 
   let incomingResponseBody = '';
@@ -54,6 +34,9 @@ router.get('/*', (incomingRequest, outgoingResponse) => {
       incomingResponse.on('end', () => {
         outgoingResponse.status(incomingResponse.statusCode);
         outgoingResponse.set(incomingResponse.headers);
+
+        console.log(incomingRequest.headers);
+        console.log(outgoingRequest.getHeaders());
 
         if (incomingResponseChunks.length > 0) {
           outgoingResponse.send(Buffer.concat(incomingResponseChunks));
