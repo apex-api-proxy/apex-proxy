@@ -33,6 +33,7 @@ ssh.connect({
 		console.log('Logging db error:');
 		console.log(e);
 	});
+	
 	console.log('ran db command')
 })
 .catch(e => {
