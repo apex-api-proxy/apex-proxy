@@ -2,6 +2,7 @@ const express = require('express');
 const https = require('https');
 const uuid = require('uuid');
 const querystring = require('querystring');
+const apexLogger = require('../middleware/log');
 
 const router = express.Router();
 
@@ -25,6 +26,8 @@ const appendApexCorrelationId = (headers) => {
 };
 
 router.get('/*', (incomingRequest, outgoingResponse) => {
+	apexLogger(incomingRequest, outgoingResponse);
+
   const incomingRequestPathWithQuery =
     incomingRequest.path + '?' + querystring.stringify(incomingRequest.query);
 
@@ -74,3 +77,4 @@ router.get('/*', (incomingRequest, outgoingResponse) => {
 });
 
 module.exports = router;
+ 

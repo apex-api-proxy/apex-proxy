@@ -11,8 +11,8 @@ const db = pgp({
 })
 
 const apexLogger = (req, res, next) => {
-	const correlationId = req.headers['X-Apex-Correlation-ID'];
-	const formattedRequestObject = reqResFormatter(req, correlationId);
+	console.log('in apexLogger...\n');
+	const correlationId = req.headers['x-apex-correlation-id'];
 
 	ssh.connect({
 	  host: `${process.env.TIMESCALE_HOSTNAME}`,
@@ -20,6 +20,8 @@ const apexLogger = (req, res, next) => {
 	  privateKey: `${process.env.SSH_KEY_LOCATION}`
 	})
 	.then( _ => {
+		const formattedRequestObject = reqResFormatter(req, correlationId);
+
 		sendLog(formattedRequestObject);
 	})
 	.catch(e => {
@@ -31,6 +33,9 @@ const apexLogger = (req, res, next) => {
 
 		sendLog(formattedResponseObject);
 	});
+
+	console.log('sending final response...\n');
+	res.send('check the database!');
 };
 
 const sendLog = (reqResObject) => {
@@ -45,19 +50,36 @@ const sendLog = (reqResObject) => {
 		console.log(e);
 	});
 
-	console.log('ran db command')
+	console.log('ran db command');
 };
 
 const reqResFormatter = (reqResObject, correlationId) => {
+	const headers = reqResObject.headers || {};
+	const headerString = stringifyHeaders(headers);
+	console.log('headerString: ', headerString);
+
 	return {
 		trace_id: correlationId,
-		headers: reqResObject.headers ? String(reqResObject.headers) : String(reqResObject.getHeaders()),
+		headers: headerString, //? String(reqResObject.headers) : String(reqResObject.getHeaders()),
 		body: reqResObject.body ? reqResObject.body : null,
 		status_code: reqResObject.statusCode ? reqResObject.statusCode : null
 	};
 };
 
-export default apexLogger;
+// const stringifyHeaders = (headers) => {
+// 	return JSON.stringify(headers);
+// }
+
+const stringifyHeaders = (headers) => {
+	const headerKeys = Object.keys(headers);
+
+	return headerKeys.reduce((accumulator, currentValue) => {
+		return accumulator += (`${currentValue}:${headers[currentValue]}, `);
+	}, '');
+};
+
+module.exports = apexLogger;
+
 
 /*
 TimescaleDB 'apex_log' table schema
