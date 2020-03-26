@@ -11,7 +11,8 @@ const db = pgp({
 })
 
 const apexLogger = (req, res, next) => {
-	const formattedRequestObject = reqResFormatter(req);
+	const correlationId = req.headers['X-Apex-Correlation-ID'];
+	const formattedRequestObject = reqResFormatter(req, correlationId);
 
 	ssh.connect({
 	  host: `${process.env.TIMESCALE_HOSTNAME}`,
@@ -26,7 +27,7 @@ const apexLogger = (req, res, next) => {
 	})
 
 	res.on('finish', _ => {
-		const formattedResponseObject = reqResFormatter(res);
+		const formattedResponseObject = reqResFormatter(res, correlationId);
 
 		sendLog(formattedResponseObject);
 	});
@@ -35,12 +36,7 @@ const apexLogger = (req, res, next) => {
 const sendLog = (reqResObject) => {
 	console.log('connected!');
 
-	db.any('INSERT INTO apex_log VALUES (NOW(), $<trace_id>, $<headers>, $<body>, $<status_code>);', {
-		trace_id: '89678a1c-6f80-11ea-bc55-0242ac130003',
-		headers: 'test headers, checking null status_code',
-		body: 'test body from config object',
-		status_code: null
-	})
+	db.any('INSERT INTO apex_log VALUES (NOW(), $<trace_id>, $<headers>, $<body>, $<status_code>);', reqResObject)
 	.then(response => {
 		console.log('response: ', response);
 	})
@@ -52,9 +48,9 @@ const sendLog = (reqResObject) => {
 	console.log('ran db command')
 };
 
-const reqResFormatter = (reqResObject) => {
+const reqResFormatter = (reqResObject, correlationId) => {
 	return {
-		trace_id: reqResObject.headers['X-Apex-Correlation-ID'],
+		trace_id: correlationId,
 		headers: reqResObject.headers ? String(reqResObject.headers) : String(reqResObject.getHeaders()),
 		body: reqResObject.body ? reqResObject.body : null,
 		status_code: reqResObject.statusCode ? reqResObject.statusCode : null
