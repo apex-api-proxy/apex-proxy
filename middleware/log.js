@@ -11,7 +11,6 @@ const db = pgp({
 })
 
 const apexLogger = (req, res, next) => {
-	console.log('in apexLogger...\n');
 	const correlationId = req.headers['x-apex-correlation-id'];
 
 	ssh.connect({
@@ -24,7 +23,7 @@ const apexLogger = (req, res, next) => {
 
 		sendLog(formattedRequestObject);
 	})
-	.catch(e => {
+	.catch( e => {
 		console.log(e);
 	})
 
@@ -34,29 +33,25 @@ const apexLogger = (req, res, next) => {
 		sendLog(formattedResponseObject);
 	});
 
-	console.log('sending final response...\n');
-	res.send('check the database!');
+	res.send('check the database.');
 };
 
 const sendLog = (reqResObject) => {
-	console.log('connected!');
+	console.log('connected to database!');
 
 	db.any('INSERT INTO apex_log VALUES (NOW(), $<trace_id>, $<headers>, $<body>, $<status_code>);', reqResObject)
-	.then(response => {
-		console.log('response: ', response);
+	.then( _ => {
+		console.log('database write succeeded.');
 	})
-	.catch(e => {
+	.catch( e => {
 		console.log('Logging db error:');
 		console.log(e);
 	});
-
-	console.log('ran db command');
 };
 
 const reqResFormatter = (reqResObject, correlationId) => {
 	const headers = reqResObject.headers || reqResObject.getHeaders() || {};
 	const headerString = stringifyHeaders(headers);
-	console.log('headerString: ', headerString);
 
 	return {
 		trace_id: correlationId,
@@ -66,17 +61,9 @@ const reqResFormatter = (reqResObject, correlationId) => {
 	};
 };
 
-// const stringifyHeaders = (headers) => {
-// 	return JSON.stringify(headers);
-// }
-
 const stringifyHeaders = (headers) => {
-	const headerKeys = Object.keys(headers);
-
-	return headerKeys.reduce((accumulator, currentValue) => {
-		return accumulator += (`${currentValue}:${headers[currentValue]}, `);
-	}, '');
-};
+	return JSON.stringify(headers);
+}
 
 module.exports = apexLogger;
 
