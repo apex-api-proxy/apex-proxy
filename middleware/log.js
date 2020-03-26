@@ -10,8 +10,6 @@ const db = pgp({
 	password: `${process.env.DB_PASSWORD}`
 })
 
-// password: `${process.env.DB_PASSWORD}`
-
 ssh.connect({
   host: `${process.env.TIMESCALE_HOSTNAME}`,
   username: `${process.env.SSH_USERNAME}`,
@@ -33,7 +31,7 @@ ssh.connect({
 		console.log('Logging db error:');
 		console.log(e);
 	});
-	
+
 	console.log('ran db command')
 })
 .catch(e => {
@@ -52,9 +50,7 @@ CREATE TABLE apex_log (
 );
 ALTER TABLE apex_log ADD CONSTRAINT valid_status CHECK (status_code > 99 AND status_code < 600);
 
-Timescale insert statement
-
-"INSERT INTO apex_log(time, trace_id, headers, body, status_code) VALUES (NOW(), '89678a1c-6f80-11ea-bc55-0242ac130003', 'test headers', 'test body', 599)"
+Timescale insert statement, configured with object
 
 'INSERT INTO apex_log VALUES (NOW(), ${trace_id}, ${headers}, #{body}, #{status_code})', {
 	trace_id: '89678a1c-6f80-11ea-bc55-0242ac130003',
@@ -65,8 +61,3 @@ Timescale insert statement
 */
 
 // access postgres from ubuntu prompt: sudo su - postgres
-
-// TIMESCALE_IP3 = 127.0.0.1
-// TIMESCALE_IP3 = 172.31.30.253
-// TIMESCALE_IP3 = 0.0.0.0
-// TIMESCALE_PORT = 22
