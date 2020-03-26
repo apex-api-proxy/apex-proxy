@@ -6,15 +6,21 @@ const querystring = require('querystring');
 const router = express.Router();
 
 const appendApexCorrelationId = (headers) => {
-  const possibleHeaders = [
-    'X-Apex-Correlation-ID',
-    'X-Apex-Correlation-Id',
-    'x-apex-correlation-id',
-  ];
+  let correlationIdHeaderName;
 
-  if (possibleHeaders.every((h) => !headers[h])) {
+  for (const h in headers) {
+    if (h.toLowerCase() === 'x-apex-correlation-id') {
+      correlationIdHeaderName = h;
+    }
+  }
+
+  if (
+    correlationIdHeaderName === undefined ||
+    !headers[correlationIdHeaderName]
+  ) {
     return { ...headers, 'X-Apex-Correlation-ID': uuid.v4() };
   }
+
   return headers;
 };
 
