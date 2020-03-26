@@ -25,9 +25,7 @@ const appendApexCorrelationId = (headers) => {
   return headers;
 };
 
-router.get('/*', (incomingRequest, outgoingResponse) => {
-	apexLogger(incomingRequest, outgoingResponse);
-
+router.get('/*', apexLogger, (incomingRequest, outgoingResponse) => {
   const incomingRequestPathWithQuery =
     incomingRequest.path + '?' + querystring.stringify(incomingRequest.query);
 

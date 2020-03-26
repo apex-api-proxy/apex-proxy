@@ -54,7 +54,7 @@ const sendLog = (reqResObject) => {
 };
 
 const reqResFormatter = (reqResObject, correlationId) => {
-	const headers = reqResObject.headers || {};
+	const headers = reqResObject.headers || reqResObject.getHeaders() || {};
 	const headerString = stringifyHeaders(headers);
 	console.log('headerString: ', headerString);
 
