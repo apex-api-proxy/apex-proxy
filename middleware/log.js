@@ -20,9 +20,9 @@ ssh.connect({
 
 	db.any('INSERT INTO apex_log VALUES (NOW(), $<trace_id>, $<headers>, $<body>, $<status_code>);', {
 		trace_id: '89678a1c-6f80-11ea-bc55-0242ac130003',
-		headers: 'test headers',
+		headers: 'test headers, checking null status_code',
 		body: 'test body from config object',
-		status_code: 599
+		status_code: null
 	})
 	.then(response => {
 		console.log('response: ', response);
