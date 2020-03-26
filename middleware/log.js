@@ -10,12 +10,29 @@ const db = pgp({
 	password: `${process.env.DB_PASSWORD}`
 })
 
-ssh.connect({
-  host: `${process.env.TIMESCALE_HOSTNAME}`,
-  username: `${process.env.SSH_USERNAME}`,
-  privateKey: `${process.env.SSH_KEY_LOCATION}`
-})
-.then( _ => {
+const apexLogger = (req, res, next) => {
+	const formattedRequestObject = reqResFormatter(req);
+
+	ssh.connect({
+	  host: `${process.env.TIMESCALE_HOSTNAME}`,
+	  username: `${process.env.SSH_USERNAME}`,
+	  privateKey: `${process.env.SSH_KEY_LOCATION}`
+	})
+	.then( _ => {
+		sendLog(formattedRequestObject);
+	})
+	.catch(e => {
+		console.log(e);
+	})
+
+	res.on('finish', _ => {
+		const formattedResponseObject = reqResFormatter(res);
+
+		sendLog(formattedResponseObject);
+	});
+};
+
+const sendLog = (reqResObject) => {
 	console.log('connected!');
 
 	db.any('INSERT INTO apex_log VALUES (NOW(), $<trace_id>, $<headers>, $<body>, $<status_code>);', {
@@ -33,10 +50,18 @@ ssh.connect({
 	});
 
 	console.log('ran db command')
-})
-.catch(e => {
-	console.log(e);
-})
+};
+
+const reqResFormatter = (reqResObject) => {
+	return {
+		trace_id: reqResObject.headers['X-Apex-Correlation-ID'],
+		headers: reqResObject.headers ? String(reqResObject.headers) : String(reqResObject.getHeaders()),
+		body: reqResObject.body ? reqResObject.body : null,
+		status_code: reqResObject.statusCode ? reqResObject.statusCode : null
+	};
+};
+
+export default apexLogger;
 
 /*
 TimescaleDB 'apex_log' table schema
