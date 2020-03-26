@@ -42,9 +42,6 @@ router.get('/*', (incomingRequest, outgoingResponse) => {
   const outgoingRequest = https.request(
     outgoingRequestOptions,
     (incomingResponse) => {
-      console.log('incomingRequest headers:', incomingRequest.headers);
-      console.log('outgoingRequest headers:', outgoingRequest.getHeaders());
-
       incomingResponse.on('data', (d) => {
         // Any other possibilities for how responses are sent, except for in chunks?
         if (incomingResponse.headers['transfer-encoding'] === 'chunked') {
@@ -70,6 +67,8 @@ router.get('/*', (incomingRequest, outgoingResponse) => {
   outgoingRequest.on('error', (error) => {
     console.error(error);
   });
+
+  outgoingRequest.write(incomingRequest.body);
 
   outgoingRequest.end();
 });
