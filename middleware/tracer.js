@@ -55,7 +55,6 @@ const getApexCorrelationIdHeader = (headers) => {
 module.exports = {
   traceRequest: () => {
     return (req, res, next) => {
-      console.log('tracing request');
       let apexCorrelationId;
 
       [req.headers, apexCorrelationId] = appendApexCorrelationIdToRequest(
