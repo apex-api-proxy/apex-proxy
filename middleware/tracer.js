@@ -1,5 +1,11 @@
 const uuid = require('uuid');
 
+/*
+Should change all header names with incorrect letter casing to
+'X-Apex-CorrelationId', so that downstream middleware doesn't
+need to account for the different possibilities
+*/
+
 const appendApexCorrelationIdToRequest = (headers) => {
   let [correlationIdHeaderName, correlationId] = getApexCorrelationIdHeader(
     headers,
