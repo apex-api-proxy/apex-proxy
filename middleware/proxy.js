@@ -1,10 +1,11 @@
 const https = require('https');
 const querystring = require('querystring');
 
-const TIMEOUT = 1000;
+const TIMEOUT = 10;
 const MAX_RETRY_ATTEMPTS = 2;
 const BACKOFF = 2000;
 
+// Also add tracing and logging logic to the proxy
 module.exports = () => {
   return (incomingRequest, outgoingResponse, next) => {
     let timeoutId;
@@ -20,6 +21,7 @@ module.exports = () => {
       headers: incomingRequest.headers,
     };
 
+    // Probably pass in arguments for all dependencies of sendOutgoingRequest
     const sendOutgoingRequest = () => {
       let incomingResponseBody = '';
       let incomingResponseChunks = [];
@@ -69,14 +71,17 @@ module.exports = () => {
     const retryOutgoingRequest = (currentOutgoingRequest, retriesCount) => {
       timeoutId = setTimeout(() => {
         currentOutgoingRequest.abort();
+        console.log(`Timed out after ${TIMEOUT}ms`);
 
         if (retriesCount < MAX_RETRY_ATTEMPTS) {
           setTimeout(() => {
+            console.log(`Backed off for ${BACKOFF}ms`);
             const retriedOutgoingRequest = sendOutgoingRequest();
 
             retryOutgoingRequest(retriedOutgoingRequest, retriesCount + 1);
 
             retriesCount += 1;
+            console.log(`Retry attempt #${retriesCount}`);
           }, BACKOFF);
         } else {
           outgoingResponse.status(504).end();
