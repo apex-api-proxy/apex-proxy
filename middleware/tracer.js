@@ -1,56 +1,78 @@
 const uuid = require('uuid');
 
-/*
-Should change all header names with incorrect letter casing to
-'X-Apex-CorrelationId', so that downstream middleware doesn't
-need to account for the different possibilities
-*/
+const APEX_CORRELATION_ID_HEADER_NAME = 'X-Apex-Correlation-ID';
 
-const appendApexCorrelationIdToRequest = (headers) => {
+const addApexCorrelationIdToRequest = (headers) => {
   let [correlationIdHeaderName, correlationId] = getApexCorrelationIdHeader(
     headers,
   );
 
+  // If incoming request doesn't already have the correlation ID header
   if (correlationIdHeaderName === null) {
     correlationId = uuid.v4();
     return [
-      { ...headers, 'X-Apex-Correlation-ID': correlationId },
+      { ...headers, [APEX_CORRELATION_ID_HEADER_NAME]: correlationId },
       correlationId,
     ];
   }
 
+  const formattedHeaders = formatCorrelationIdHeaderName(
+    headers,
+    correlationIdHeaderName,
+  );
+
+  // If incoming request has an empty correlation ID header
   if (!correlationId) {
     correlationId = uuid.v4();
 
     return [
-      { ...headers, [correlationIdHeaderName]: correlationId },
+      { ...formattedHeaders, [APEX_CORRELATION_ID_HEADER_NAME]: correlationId },
       correlationId,
     ];
   }
 
-  return [headers, correlationId];
+  // If incoming request already has a valid correlation ID header
+  return [formattedHeaders, correlationId];
 };
 
-const appendApexCorrelationIdToResponse = (headers, requestCorrelationId) => {
+const addApexCorrelationIdToResponse = (headers, requestCorrelationId) => {
   let [
     correlationIdHeaderName,
-    existingCorrelationId,
+    incomingResponseCorrelationId,
   ] = getApexCorrelationIdHeader(headers);
 
+  // If incoming response doesn't have the correlation ID header
   if (correlationIdHeaderName === null) {
-    return { ...headers, 'X-Apex-Correlation-ID': requestCorrelationId };
+    return {
+      ...headers,
+      [APEX_CORRELATION_ID_HEADER_NAME]: requestCorrelationId,
+    };
   }
 
-  if (existingCorrelationId !== requestCorrelationId) {
-    return { ...headers, [correlationIdHeaderName]: requestCorrelationId };
+  const formattedHeaders = formatCorrelationIdHeaderName(
+    headers,
+    correlationIdHeaderName,
+  );
+
+  // If incoming response's correlation ID header value doesn't match
+  // that of the outgoing request's correlation ID
+  if (incomingResponseCorrelationId !== requestCorrelationId) {
+    return {
+      ...formattedHeaders,
+      [APEX_CORRELATION_ID_HEADER_NAME]: requestCorrelationId,
+    };
   }
 
-  return headers;
+  return formattedHeaders;
 };
 
+// Find name and value of header whose name matches
+// 'X-Apex-Correlation-ID' when ignoring case
 const getApexCorrelationIdHeader = (headers) => {
   for (const h in headers) {
     if (h.toLowerCase() === 'x-apex-correlation-id') {
+      // Return early, assuming there's at most 1 header matching
+      // 'x-apex-correlation-id'
       return [h, headers[h]];
     }
   }
@@ -58,12 +80,27 @@ const getApexCorrelationIdHeader = (headers) => {
   return [null, null];
 };
 
+// Ensure header name matches 'X-Apex-Correlation-Id' exactly, including case
+const formatCorrelationIdHeaderName = (headers, unformattedHeaderName) => {
+  if (unformattedHeaderName === APEX_CORRELATION_ID_HEADER_NAME) {
+    return headers;
+  }
+
+  let result = { ...headers };
+
+  result[APEX_CORRELATION_ID_HEADER_NAME] = result[unformattedHeaderName];
+
+  delete result[unformattedHeaderName];
+
+  return result;
+};
+
 module.exports = {
   traceRequest: () => {
     return (req, res, next) => {
       let apexCorrelationId;
 
-      [req.headers, apexCorrelationId] = appendApexCorrelationIdToRequest(
+      [req.headers, apexCorrelationId] = addApexCorrelationIdToRequest(
         req.headers,
       );
 
@@ -78,7 +115,7 @@ module.exports = {
       const resHeaders = res.getHeaders();
       const apexCorrelationId = res.locals.apexCorrelationId;
 
-      const resHeadersWithCorrelationId = appendApexCorrelationIdToResponse(
+      const resHeadersWithCorrelationId = addApexCorrelationIdToResponse(
         resHeaders,
         apexCorrelationId,
       );

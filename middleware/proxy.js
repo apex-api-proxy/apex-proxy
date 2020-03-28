@@ -71,6 +71,7 @@ module.exports = () => {
     const retryOutgoingRequest = (currentOutgoingRequest, retriesCount) => {
       timeoutId = setTimeout(() => {
         currentOutgoingRequest.abort();
+
         console.log(`Timed out after ${TIMEOUT}ms`);
 
         if (retriesCount < MAX_RETRY_ATTEMPTS) {
