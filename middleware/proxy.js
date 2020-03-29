@@ -1,7 +1,7 @@
 const https = require('https');
 const querystring = require('querystring');
 
-const TIMEOUT = 10;
+const TIMEOUT = 5000;
 
 const generateOutgoingRequestOptions = (incomingRequest) => {
   const incomingRequestPathWithQuery =
@@ -51,17 +51,21 @@ module.exports = () => {
             });
 
             incomingResponse.on('end', () => {
-              clearTimeout(timeoutId);
+              // Ensure that we don't build outgoingResponse if outgoingRequest was aborted;
+              // otherwise buildOutgoingResponse() below would throw error
+              if (incomingResponse.aborted === false) {
+                clearTimeout(timeoutId);
 
-              incomingResponseBody = Buffer.concat(incomingResponseChunks);
+                incomingResponseBody = Buffer.concat(incomingResponseChunks);
 
-              buildOutgoingResponse(
-                incomingResponse,
-                incomingResponseBody,
-                outgoingResponse,
-              );
+                buildOutgoingResponse(
+                  incomingResponse,
+                  incomingResponseBody,
+                  outgoingResponse,
+                );
 
-              resolve();
+                resolve();
+              }
             });
           },
         );

@@ -1,5 +1,5 @@
 const MAX_RETRY_ATTEMPTS = 2;
-const BACKOFF = 4000;
+const BACKOFF = 3000;
 
 module.exports = () => {
   return (incomingRequest, outgoingResponse, next) => {

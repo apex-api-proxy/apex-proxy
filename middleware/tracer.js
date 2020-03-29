@@ -97,30 +97,33 @@ const formatCorrelationIdHeaderName = (headers, unformattedHeaderName) => {
 
 module.exports = {
   traceRequest: () => {
-    return (req, res, next) => {
+    return (incomingRequest, outgoingResponse, next) => {
+      let headers;
       let apexCorrelationId;
 
-      [req.headers, apexCorrelationId] = addApexCorrelationIdToRequest(
-        req.headers,
+      [headers, apexCorrelationId] = addApexCorrelationIdToRequest(
+        incomingRequest.headers,
       );
 
-      res.locals.apexCorrelationId = apexCorrelationId;
+      incomingRequest.headers = headers;
+
+      outgoingResponse.locals.apexCorrelationId = apexCorrelationId;
 
       next();
     };
   },
 
   traceResponse: () => {
-    return (req, res, next) => {
-      const resHeaders = res.getHeaders();
-      const apexCorrelationId = res.locals.apexCorrelationId;
+    return (incomingRequest, outgoingResponse, next) => {
+      const headers = outgoingResponse.getHeaders();
+      const apexCorrelationId = outgoingResponse.locals.apexCorrelationId;
 
-      const resHeadersWithCorrelationId = addApexCorrelationIdToResponse(
-        resHeaders,
+      const headersWithCorrelationId = addApexCorrelationIdToResponse(
+        headers,
         apexCorrelationId,
       );
 
-      res.set(resHeadersWithCorrelationId);
+      outgoingResponse.set(headersWithCorrelationId);
 
       next();
     };
