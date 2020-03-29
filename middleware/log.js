@@ -8,38 +8,54 @@ const db = pgp({
 	database: 'postgres',
 	user: `${process.env.DB_USER}`,
 	password: `${process.env.DB_PASSWORD}`
-})
+});
 
 const apexLogger = (req, res, next) => {
-	const correlationId = req.headers['x-apex-correlation-id'];
+	// console.log('res.statusCode when apexLogger begins: ', res.statusCode);
+	const correlationId = req.headers['x-apex-correlation-id'] || req.headers['X-Apex-Correlation-ID'];
+	let finished;
 
-	ssh.connect({
+	const requestFinishing = new Promise((resolve, reject) => {
+	  res.on('finish', () => {
+	    resolve();
+	  });
+	});
+
+	res.locals.logStoreConnection = ssh.connect({
 	  host: `${process.env.TIMESCALE_HOSTNAME}`,
 	  username: `${process.env.SSH_USERNAME}`,
 	  privateKey: `${process.env.SSH_KEY_LOCATION}`
-	})
-	.then( _ => {
-		const formattedRequestObject = reqResFormatter(req, correlationId);
+	});
 
-		sendLog(formattedRequestObject);
+	// ssh.connect({
+	//   host: `${process.env.TIMESCALE_HOSTNAME}`,
+	//   username: `${process.env.SSH_USERNAME}`,
+	//   privateKey: `${process.env.SSH_KEY_LOCATION}`
+	// })
+	res.locals.logStoreConnection
+	.then( _ => {
+		const formattedRequest = reqFormatter(res, correlationId);
+		sendLog(formattedRequest)
+
 	})
 	.catch( e => {
 		console.log(e);
 	})
 
-	res.on('finish', _ => {
-		const formattedResponseObject = reqResFormatter(res, correlationId);
-
-		sendLog(formattedResponseObject);
-	});
-
-	res.send('check the database.');
+	next();
 };
 
-const sendLog = (reqResObject) => {
-	console.log('connected to database!');
+const sendLog = (reqRes) => {
+	const correlationId = reqRes.headers['x-apex-correlation-id'] || reqRes.headers['X-Apex-Correlation-ID'] || 'test!';
+	let formattedLogObject;
 
-	db.any('INSERT INTO apex_log VALUES (NOW(), $<trace_id>, $<headers>, $<body>, $<status_code>);', reqResObject)
+	if (reqRes.statusCode) {
+		formattedLogObject = resFormatter(reqRes, correlationId);
+	} else {
+		formattedLogObject = reqFormatter(reqRes, correlationId);
+	}
+
+	return db.any('INSERT INTO apex_log VALUES (NOW(), $<trace_id>, $<headers>, $<body>, $<status_code>);', formattedLogObject)
 	.then( _ => {
 		console.log('database write succeeded.');
 	})
@@ -49,15 +65,35 @@ const sendLog = (reqResObject) => {
 	});
 };
 
-const reqResFormatter = (reqResObject, correlationId) => {
-	const headers = reqResObject.headers || reqResObject.getHeaders() || {};
+const reqFormatter = (reqObject, correlationId) => {
+	const headers = reqObject.headers || {};
 
 	return {
 		trace_id: correlationId,
-		headers: JSON.stringify(headers), //? String(reqResObject.headers) : String(reqResObject.getHeaders()),
-		body: reqResObject.body ? JSON.stringify(reqResObject.body) : null,
-		status_code: reqResObject.statusCode ? reqResObject.statusCode : null
+		headers: JSON.stringify(headers),
+		body: reqObject.body ? JSON.stringify(reqObject.body) : null,
+		status_code: null
+	};
+};
+
+const resFormatter = (resObject, correlationId) => {
+	// console.log('resFormatter body: ', resObject.locals.body);
+	const headers = resObject.getHeaders() || {};
+
+	return {
+		trace_id: correlationId,
+		headers: JSON.stringify(headers),
+		body: resObject.locals.body,
+		status_code: resObject.statusCode
 	};
 };
 
 module.exports = apexLogger;
+
+		// .then( _ => {
+		// 	requestFinishing.then(() => {
+		// 		console.log('res.locals.body: ', typeof res.locals.body);
+		// 		const formattedResponse = resFormatter(res, correlationId, res.locals.body);
+		// 		sendLog(formattedResponse)
+		// 	});
+		// })

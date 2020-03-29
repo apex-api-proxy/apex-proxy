@@ -19,3 +19,6 @@ Timescale insert statement, configured with object
 	status_code: 900
 }
 */
+
+SSH into ubuntu server:
+ssh -i "apex.pem" ubuntu@ec2-3-135-234-50.us-east-2.compute.amazonaws.com
