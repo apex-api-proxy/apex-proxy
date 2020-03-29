@@ -1,7 +1,7 @@
 const https = require('https');
 const querystring = require('querystring');
 
-const TIMEOUT = 5000;
+const TIMEOUT = 100;
 
 const generateOutgoingRequestOptions = (incomingRequest) => {
   const incomingRequestPathWithQuery =
@@ -33,7 +33,6 @@ module.exports = () => {
       incomingRequest,
     );
 
-    // Probably pass in arguments for all dependencies of sendOutgoingRequest
     outgoingResponse.locals.sendOutgoingRequest = () => {
       return new Promise((resolve, reject) => {
         let timeoutId;
@@ -87,6 +86,8 @@ module.exports = () => {
         }, TIMEOUT);
       });
     };
+
+    outgoingResponse.locals.firstOutgoingRequest = outgoingResponse.locals.sendOutgoingRequest();
 
     next();
   };

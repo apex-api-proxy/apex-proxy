@@ -21,8 +21,13 @@ module.exports = () => {
     };
 
     // Send outgoingRequest for the 1st time
-    outgoingResponse.locals
-      .sendOutgoingRequest()
-      .then(next, resendOutgoingRequest);
+    // outgoingResponse.locals
+    //   .sendOutgoingRequest()
+    //   .then(next, resendOutgoingRequest);
+
+    outgoingResponse.locals.firstOutgoingRequest.then(
+      next,
+      resendOutgoingRequest,
+    );
   };
 };
