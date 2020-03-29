@@ -16,7 +16,10 @@ app.use(tracer.traceRequest());
 app.use(logger('dev'));
 // app.use(express.json());
 // app.use(express.urlencoded({ extended: false }));
-app.use(bodyParser.text({ type: '*/*' })); // May not support all request bodies, maximum size of request body defaults to 100kb
+
+// May not support all request bodies, maximum size of
+// request body defaults to 100kb
+app.use(bodyParser.text({ type: '*/*' }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 

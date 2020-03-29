@@ -1,0 +1,3 @@
+timeout: 1
+max retry attempts: 4
+backoff: 3000
