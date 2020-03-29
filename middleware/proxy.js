@@ -3,17 +3,6 @@ const querystring = require('querystring');
 const fs = require('fs');
 const yaml = require('js-yaml');
 
-// Extract reading config data to its own middleware?
-let config;
-
-try {
-  config = yaml.safeLoad(fs.readFileSync('config/config.yml', 'utf8'));
-} catch (e) {
-  console.log(e);
-}
-
-const TIMEOUT = config['timeout'];
-
 const generateOutgoingRequestOptions = (incomingRequest) => {
   const incomingRequestPathWithQuery =
     incomingRequest.path + '?' + querystring.stringify(incomingRequest.query);
@@ -40,6 +29,17 @@ const buildOutgoingResponse = (
 // Also add tracing and logging logic to the proxy
 module.exports = () => {
   return (incomingRequest, outgoingResponse, next) => {
+    // Extract reading config data to its own middleware?
+    let config;
+
+    try {
+      config = yaml.safeLoad(fs.readFileSync('config/config.yml', 'utf8'));
+    } catch (e) {
+      console.log(e);
+    }
+
+    const TIMEOUT = config['timeout'];
+
     const outgoingRequestOptions = generateOutgoingRequestOptions(
       incomingRequest,
     );
