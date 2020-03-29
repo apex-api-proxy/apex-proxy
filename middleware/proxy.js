@@ -1,7 +1,18 @@
 const https = require('https');
 const querystring = require('querystring');
+const fs = require('fs');
+const yaml = require('js-yaml');
 
-const TIMEOUT = 100;
+// Extract reading config data to its own middleware?
+let config;
+
+try {
+  config = yaml.safeLoad(fs.readFileSync('config/config.yml', 'utf8'));
+} catch (e) {
+  console.log(e);
+}
+
+const TIMEOUT = config['timeout'];
 
 const generateOutgoingRequestOptions = (incomingRequest) => {
   const incomingRequestPathWithQuery =
