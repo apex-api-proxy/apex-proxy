@@ -2,96 +2,88 @@ const https = require('https');
 const querystring = require('querystring');
 
 const TIMEOUT = 10;
-const MAX_RETRY_ATTEMPTS = 2;
-const BACKOFF = 2000;
+
+const generateOutgoingRequestOptions = (incomingRequest) => {
+  const incomingRequestPathWithQuery =
+    incomingRequest.path + '?' + querystring.stringify(incomingRequest.query);
+
+  return {
+    method: incomingRequest.method,
+    hostname: incomingRequest.headers['host'],
+    port: 443,
+    path: incomingRequestPathWithQuery,
+    headers: incomingRequest.headers,
+  };
+};
+
+const buildOutgoingResponse = (
+  incomingResponse,
+  incomingResponseBody,
+  outgoingResponse,
+) => {
+  outgoingResponse.status(incomingResponse.statusCode);
+  outgoingResponse.set(incomingResponse.headers);
+  outgoingResponse.locals.body = incomingResponseBody;
+};
 
 // Also add tracing and logging logic to the proxy
 module.exports = () => {
   return (incomingRequest, outgoingResponse, next) => {
-    let timeoutId;
-
-    const incomingRequestPathWithQuery =
-      incomingRequest.path + '?' + querystring.stringify(incomingRequest.query);
-
-    const outgoingRequestOptions = {
-      method: incomingRequest.method,
-      hostname: incomingRequest.headers['host'],
-      port: 443,
-      path: incomingRequestPathWithQuery,
-      headers: incomingRequest.headers,
-    };
+    const outgoingRequestOptions = generateOutgoingRequestOptions(
+      incomingRequest,
+    );
 
     // Probably pass in arguments for all dependencies of sendOutgoingRequest
-    const sendOutgoingRequest = () => {
-      let incomingResponseBody = '';
-      let incomingResponseChunks = [];
+    outgoingResponse.locals.sendOutgoingRequest = () => {
+      return new Promise((resolve, reject) => {
+        let timeoutId;
 
-      const outgoingRequest = https.request(
-        outgoingRequestOptions,
-        (incomingResponse) => {
-          incomingResponse.on('data', (d) => {
-            // Any other possibilities for how responses are sent, except for in chunks?
-            if (incomingResponse.headers['transfer-encoding'] === 'chunked') {
+        const outgoingRequest = https.request(
+          outgoingRequestOptions,
+          (incomingResponse) => {
+            const incomingResponseChunks = [];
+            let incomingResponseBody;
+
+            incomingResponse.on('data', (d) => {
+              // Any other possibilities for how responses are sent, except for in chunks?
+              // How about streams or, more generally, very large files?
               incomingResponseChunks.push(d);
-            } else {
-              incomingResponseBody += d;
-            }
-          });
+            });
 
-          incomingResponse.on('end', () => {
-            clearTimeout(timeoutId);
+            incomingResponse.on('end', () => {
+              clearTimeout(timeoutId);
 
-            outgoingResponse.status(incomingResponse.statusCode);
-            outgoingResponse.set(incomingResponse.headers);
+              incomingResponseBody = Buffer.concat(incomingResponseChunks);
 
-            if (incomingResponseChunks.length > 0) {
-              outgoingResponse.locals.body = Buffer.concat(
-                incomingResponseChunks,
+              buildOutgoingResponse(
+                incomingResponse,
+                incomingResponseBody,
+                outgoingResponse,
               );
-            } else {
-              outgoingResponse.locals.body = incomingResponseBody;
-            }
 
-            next();
-          });
-        },
-      );
+              resolve();
+            });
+          },
+        );
 
-      outgoingRequest.on('error', (error) => {
-        console.error(error);
+        outgoingRequest.on('error', (error) => {
+          // console.error(error);
+        });
+
+        outgoingRequest.write(incomingRequest.body);
+
+        outgoingRequest.end();
+
+        timeoutId = setTimeout(() => {
+          outgoingRequest.abort();
+
+          console.log(`Timed out after ${TIMEOUT}ms\n`);
+
+          reject(outgoingResponse.locals.sendOutgoingRequest);
+        }, TIMEOUT);
       });
-
-      outgoingRequest.write(incomingRequest.body);
-
-      outgoingRequest.end();
-
-      return outgoingRequest;
     };
 
-    const retryOutgoingRequest = (currentOutgoingRequest, retriesCount) => {
-      timeoutId = setTimeout(() => {
-        currentOutgoingRequest.abort();
-
-        console.log(`Timed out after ${TIMEOUT}ms`);
-
-        if (retriesCount < MAX_RETRY_ATTEMPTS) {
-          setTimeout(() => {
-            console.log(`Backed off for ${BACKOFF}ms`);
-            const retriedOutgoingRequest = sendOutgoingRequest();
-
-            retryOutgoingRequest(retriedOutgoingRequest, retriesCount + 1);
-
-            retriesCount += 1;
-            console.log(`Retry attempt #${retriesCount}`);
-          }, BACKOFF);
-        } else {
-          outgoingResponse.status(504).end();
-        }
-      }, TIMEOUT);
-    };
-
-    const firstOutgoingRequest = sendOutgoingRequest();
-
-    retryOutgoingRequest(firstOutgoingRequest, 0);
+    next();
   };
 };
