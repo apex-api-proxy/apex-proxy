@@ -22,6 +22,7 @@ module.exports = () => {
       (incomingResponse) => {
         incomingResponse.on('data', (d) => {
           // Any other possibilities for how responses are sent, except for in chunks?
+          console.log("incomingResponse.headers['transfer-encoding']: ", incomingResponse.headers['transfer-encoding'])
           if (incomingResponse.headers['transfer-encoding'] === 'chunked') {
             incomingResponseChunks.push(d);
           } else {
@@ -36,6 +37,7 @@ module.exports = () => {
           // console.log('incomingRequest headers:', incomingRequest.headers);
           // console.log('outgoingRequest headers:', outgoingRequest.getHeaders());
 
+          console.log('chunks: ', incomingResponseChunks);
           if (incomingResponseChunks.length > 0) {
             outgoingResponse.locals.body = Buffer.concat(
               incomingResponseChunks,

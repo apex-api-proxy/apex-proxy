@@ -10,10 +10,8 @@ const db = pgp({
 	password: `${process.env.DB_PASSWORD}`
 });
 
-const apexLogger = (req, res, next) => {
-	// console.log('res.statusCode when apexLogger begins: ', res.statusCode);
-	const correlationId = req.headers['x-apex-correlation-id'] || req.headers['X-Apex-Correlation-ID'];
-	let finished;
+const init = (req, res, next) => {
+	res.locals.correlationId = req.headers['x-apex-correlation-id'] || req.headers['X-Apex-Correlation-ID'];
 
 	const requestFinishing = new Promise((resolve, reject) => {
 	  res.on('finish', () => {
@@ -21,22 +19,13 @@ const apexLogger = (req, res, next) => {
 	  });
 	});
 
-	res.locals.logStoreConnection = ssh.connect({
+	ssh.connect({
 	  host: `${process.env.TIMESCALE_HOSTNAME}`,
 	  username: `${process.env.SSH_USERNAME}`,
 	  privateKey: `${process.env.SSH_KEY_LOCATION}`
-	});
-
-	// ssh.connect({
-	//   host: `${process.env.TIMESCALE_HOSTNAME}`,
-	//   username: `${process.env.SSH_USERNAME}`,
-	//   privateKey: `${process.env.SSH_KEY_LOCATION}`
-	// })
-	res.locals.logStoreConnection
+	})
 	.then( _ => {
-		const formattedRequest = reqFormatter(res, correlationId);
-		sendLog(formattedRequest)
-
+		sendLog(req);
 	})
 	.catch( e => {
 		console.log(e);
@@ -46,13 +35,12 @@ const apexLogger = (req, res, next) => {
 };
 
 const sendLog = (reqRes) => {
-	const correlationId = reqRes.headers['x-apex-correlation-id'] || reqRes.headers['X-Apex-Correlation-ID'] || 'test!';
 	let formattedLogObject;
 
 	if (reqRes.statusCode) {
-		formattedLogObject = resFormatter(reqRes, correlationId);
+		formattedLogObject = resFormatter(reqRes);
 	} else {
-		formattedLogObject = reqFormatter(reqRes, correlationId);
+		formattedLogObject = reqFormatter(reqRes);
 	}
 
 	return db.any('INSERT INTO apex_log VALUES (NOW(), $<trace_id>, $<headers>, $<body>, $<status_code>);', formattedLogObject)
@@ -65,8 +53,10 @@ const sendLog = (reqRes) => {
 	});
 };
 
-const reqFormatter = (reqObject, correlationId) => {
-	const headers = reqObject.headers || {};
+const reqFormatter = (reqObject) => {
+	console.log('request headers: ', reqObject.headers);
+	const headers = reqObject.headers;
+	const correlationId = headers['x-apex-correlation-id'] || headers['X-Apex-Correlation-ID'];
 
 	return {
 		trace_id: correlationId,
@@ -76,9 +66,9 @@ const reqFormatter = (reqObject, correlationId) => {
 	};
 };
 
-const resFormatter = (resObject, correlationId) => {
-	// console.log('resFormatter body: ', resObject.locals.body);
-	const headers = resObject.getHeaders() || {};
+const resFormatter = (resObject) => {
+	const headers = resObject.req.headers;
+	const correlationId = resObject.locals.apexCorrelationId;
 
 	return {
 		trace_id: correlationId,
@@ -88,7 +78,7 @@ const resFormatter = (resObject, correlationId) => {
 	};
 };
 
-module.exports = apexLogger;
+module.exports = { init, sendLog };
 
 		// .then( _ => {
 		// 	requestFinishing.then(() => {
