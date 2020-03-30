@@ -26,7 +26,7 @@ const buildOutgoingResponse = (
   outgoingResponse.locals.body = incomingResponseBody;
 };
 
-// Also add tracing and logging logic to the proxy
+// Also add logging logic to the proxy
 module.exports = () => {
   return (incomingRequest, outgoingResponse, next) => {
     // Extract reading config data to its own middleware?
