@@ -2,7 +2,7 @@ const express = require('express');
 const proxy = require('../middleware/proxy');
 const retry = require('../middleware/retry');
 const tracer = require('../middleware/tracer');
-const apexLogger = require('../middleware/log');
+const apexLogger = require('../middleware/apexLogger');
 
 const outgoingResponseSender = require('../middleware/outgoingResponseSender');
 
@@ -10,7 +10,7 @@ const router = express.Router();
 
 router.get(
   '/*',
-  apexLogger.init,
+  apexLogger.init(),
   proxy(),
   retry(),
   tracer.traceResponse(),

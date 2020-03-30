@@ -2,7 +2,7 @@ const https = require('https');
 const querystring = require('querystring');
 const fs = require('fs');
 const yaml = require('js-yaml');
-const apexLogger = require('./log');
+const apexLogger = require('./apexLogger');
 
 const generateOutgoingRequestOptions = (incomingRequest) => {
   const incomingRequestPathWithQuery =
@@ -22,13 +22,11 @@ const buildOutgoingResponse = (
   incomingResponseBody,
   outgoingResponse,
 ) => {
-  // console.log('incomingResponse: ', incomingResponse);
   outgoingResponse.status(incomingResponse.statusCode);
   outgoingResponse.set(incomingResponse.headers);
   outgoingResponse.locals.body = incomingResponseBody;
 };
 
-// Also add tracing and logging logic to the proxy
 module.exports = () => {
   return (incomingRequest, outgoingResponse, next) => {
     // Extract reading config data to its own middleware?
@@ -47,15 +45,6 @@ module.exports = () => {
     );
 
     outgoingResponse.locals.sendOutgoingRequest = () => {
-      const correlationId = incomingRequest.headers['X-Apex-Correlation-ID'];
-      const headers = incomingRequest.headers;
-      // const body = incomingRequest.body || null;
-      const body = 'outgoingRequest';
-      const status = null;
-
-      console.log('logging to apex: ', correlationId, headers, body, status)
-      apexLogger.sendLog(correlationId, headers, body, status);
-
       return new Promise((resolve, reject) => {
         let timeoutId;
 
@@ -80,20 +69,22 @@ module.exports = () => {
 
                 incomingResponseBody = Buffer.concat(incomingResponseChunks);
 
+                const correlationId = outgoingResponse.locals.apexCorrelationId;
+                const headers = incomingResponse.headers;
+                const body = incomingResponseBody.toString();
+                const status = incomingResponse.statusCode;
+
+                apexLogger
+                  .sendLog(correlationId, headers, body, status)
+                  .then(() => {
+                    console.log('just logged incomingResponse above');
+                  });
+
                 buildOutgoingResponse(
                   incomingResponse,
                   incomingResponseBody,
                   outgoingResponse,
                 );
-
-                const correlationId = incomingRequest.headers['X-Apex-Correlation-ID'];
-                const headers = incomingRequest.headers;
-                // const body = incomingResponseBody;
-                const body = 'incomingResponse';
-                const status = incomingResponse.statusCode;
-
-                console.log('logging to apex: ', correlationId, headers, body, status)
-                apexLogger.sendLog(correlationId, headers, body, status);
 
                 resolve();
               }
@@ -102,14 +93,24 @@ module.exports = () => {
         );
 
         outgoingRequest.on('error', (error) => {
-          // console.error(error);
+          console.log('error while proxy was sending outgoingRequest:');
+          console.error(error);
+          console.log('\n');
         });
 
-        if (incomingRequest.body && typeof incomingRequest.body !== 'object') {
-          outgoingRequest.write(incomingRequest.body);
-        }
+        outgoingRequest.write(incomingRequest.body);
 
         outgoingRequest.end();
+
+        const correlationId = incomingRequest.headers['X-Apex-Correlation-ID'];
+        const headers = incomingRequest.headers;
+        const body = incomingRequest.body;
+        const method = outgoingRequest.method;
+        const path = outgoingRequest.path;
+
+        apexLogger.sendLog(correlationId, headers, body).then(() => {
+          console.log('just logged outgoingRequest above');
+        });
 
         timeoutId = setTimeout(() => {
           outgoingRequest.abort();

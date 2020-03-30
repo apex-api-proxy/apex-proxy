@@ -1,6 +1,5 @@
 const express = require('express');
 const tracer = require('./middleware/tracer');
-// const apexLogger = require('./middleware/log');
 const logger = require('morgan');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
@@ -12,7 +11,6 @@ const indexRouter = require('./routes/index');
 const app = express();
 
 app.use(tracer.traceRequest());
-// app.use(apexLogger);
 app.use(logger('dev'));
 // app.use(express.json());
 // app.use(express.urlencoded({ extended: false }));

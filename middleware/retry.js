@@ -1,6 +1,5 @@
 const fs = require('fs');
 const yaml = require('js-yaml');
-const apexLogger = require('./log');
 
 module.exports = () => {
   return (incomingRequest, outgoingResponse, next) => {
@@ -30,10 +29,6 @@ module.exports = () => {
         }, BACKOFF);
       } else {
         outgoingResponse.status(504);
-
-        const correlationId = incomingRequest.header['X-Apex-Correlation-ID'];
-        const headers = incomingRequest.headers;
-        apexLogger.sendLog(correlationId, headers, null, 504);
         next();
       }
     };

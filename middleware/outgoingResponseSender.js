@@ -1,13 +1,15 @@
-const apexLogger = require('./log');
+const apexLogger = require('./apexLogger');
 
 module.exports = () => {
   return (incomingRequest, outgoingResponse) => {
-  	const headers = outgoingResponse.req.headers;
-  	const correlationId = headers['X-Apex-Correlation-ID'];
+    const correlationId = outgoingResponse.locals.apexCorrelationId;
+    const headers = outgoingResponse.getHeaders();
     const body = outgoingResponse.locals.body.toString();
     const status = outgoingResponse.statusCode;
 
-    apexLogger.sendLog(correlationId, headers, body, status);
+    apexLogger.sendLog(correlationId, headers, body, status).then(() => {
+      console.log('just logged outgoingResponse above');
+    });
 
     outgoingResponse.send(body);
   };
