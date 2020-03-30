@@ -18,23 +18,27 @@ const init = (req, res, next) => {
       privateKey: `${process.env.SSH_KEY_LOCATION}`,
     })
     .then((_) => {
-      sendLog(req);
+    	console.log('req.body: ', req.body);
+    	const headers = req.headers;
+    	const correlationId = headers['X-Apex-Correlation-ID'];
+    	// const body = req.body;
+    	const body = 'incomingRequest';
+
+      sendLog(correlationId, headers, body);
     })
+    .then(next)
     .catch((e) => {
       console.log(e);
     });
-
-  next();
 };
 
-const sendLog = (reqRes) => {
-  let formattedLogObject;
-
-  if (reqRes.statusCode) {
-    formattedLogObject = resFormatter(reqRes);
-  } else {
-    formattedLogObject = reqFormatter(reqRes);
-  }
+const sendLog = (trace_id, headers, body=null, status=null) => {
+	const formattedLogObject = {
+	  trace_id: trace_id,
+	  headers: headers,
+	  body: body,
+	  status_code: status,
+	};
 
   return db
     .any(
@@ -49,29 +53,7 @@ const sendLog = (reqRes) => {
     });
 };
 
-const reqFormatter = (reqObject) => {
-  // console.log('request headers: ', reqObject.headers);
-  const headers = reqObject.headers;
-  const correlationId =
-    headers['X-Apex-Correlation-ID'] || headers['x-apex-correlation-id'];
-
-  return {
-    trace_id: correlationId,
-    headers: JSON.stringify(headers),
-    body: reqObject.body ? JSON.stringify(reqObject.body) : null,
-    status_code: null,
-  };
-};
-
-const resFormatter = (resObject) => {
-  const headers = resObject.headers;
-
-  return {
-    trace_id: resObject.locals.apexCorrelationId,
-    headers: JSON.stringify(headers),
-    body: resObject.locals.body,
-    status_code: resObject.statusCode,
-  };
-};
-
-module.exports = { init, sendLog };
+module.exports = { 
+	init,
+	sendLog
+}

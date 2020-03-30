@@ -30,7 +30,10 @@ module.exports = () => {
         }, BACKOFF);
       } else {
         outgoingResponse.status(504);
-        apexLogger.sendLog(outgoingResponse);
+
+        const correlationId = incomingRequest.header['X-Apex-Correlation-ID'];
+        const headers = incomingRequest.headers;
+        apexLogger.sendLog(correlationId, headers, null, 504);
         next();
       }
     };

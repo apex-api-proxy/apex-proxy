@@ -47,6 +47,15 @@ module.exports = () => {
     );
 
     outgoingResponse.locals.sendOutgoingRequest = () => {
+      const correlationId = incomingRequest.headers['X-Apex-Correlation-ID'];
+      const headers = incomingRequest.headers;
+      // const body = incomingRequest.body || null;
+      const body = 'outgoingRequest';
+      const status = null;
+
+      console.log('logging to apex: ', correlationId, headers, body, status)
+      apexLogger.sendLog(correlationId, headers, body, status);
+
       return new Promise((resolve, reject) => {
         let timeoutId;
 
@@ -66,10 +75,6 @@ module.exports = () => {
               // Ensure that we don't build outgoingResponse if outgoingRequest was aborted;
               // otherwise buildOutgoingResponse() below would throw error
 
-              // console.log('incomingResponse: ', incomingResponse);
-
-              console.log('in end');
-
               if (incomingResponse.aborted === false) {
                 clearTimeout(timeoutId);
 
@@ -81,7 +86,14 @@ module.exports = () => {
                   outgoingResponse,
                 );
 
-                apexLogger.sendLog(incomingResponse);
+                const correlationId = incomingRequest.headers['X-Apex-Correlation-ID'];
+                const headers = incomingRequest.headers;
+                // const body = incomingResponseBody;
+                const body = 'incomingResponse';
+                const status = incomingResponse.statusCode;
+
+                console.log('logging to apex: ', correlationId, headers, body, status)
+                apexLogger.sendLog(correlationId, headers, body, status);
 
                 resolve();
               }
@@ -97,12 +109,6 @@ module.exports = () => {
           outgoingRequest.write(incomingRequest.body);
         }
 
-        // console.log('outgoingRequest.headers before apexLogger sends: ', outgoingRequest.headers);
-        // apexLogger.sendLog({
-        //   ...outgoingRequest,
-        //   headers: outgoingRequestOptions.headers,
-        // });
-
         outgoingRequest.end();
 
         timeoutId = setTimeout(() => {
@@ -114,9 +120,6 @@ module.exports = () => {
         }, TIMEOUT);
       }).catch((e) => console.log(e));
     };
-
-    // outgoingResponse.locals.sendFirstOutgoingRequest =
-    //   outgoingResponse.locals.sendOutgoingRequest;
 
     next();
   };

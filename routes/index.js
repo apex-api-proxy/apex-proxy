@@ -10,7 +10,7 @@ const router = express.Router();
 
 router.get(
   '/*',
-  // apexLogger.init,
+  apexLogger.init,
   proxy(),
   retry(),
   tracer.traceResponse(),
