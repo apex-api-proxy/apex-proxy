@@ -45,7 +45,6 @@ const sendLog = (reqRes) => {
 };
 
 const reqFormatter = (reqObject) => {
-	console.log('request headers: ', reqObject.headers);
 	const headers = reqObject.headers;
 	const correlationId = headers['X-Apex-Correlation-ID'] || headers['x-apex-correlation-id'];
 
