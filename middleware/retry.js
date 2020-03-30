@@ -24,16 +24,13 @@ module.exports = () => {
           console.log(`Backed off for ${BACKOFF}ms`);
 
           sendOutgoingRequest().then(
-            (response) => {
-              console.log('successful response status code: ', response.statusCode);
-              apexLogger.sendLog(response);
+            (incomingResponse) => {
+              outgoingResponse.status(incomingResponse.statusCode);
+              console.log('successful response status code: ', incomingResponse.statusCode);
+              apexLogger.sendLog(incomingResponse);
               next(); 
             }, 
-            (response) => {
-              console.log('unsuccessful response: ', response);
-              apexLogger.sendLog(response);
-              resendOutgoingRequest(outgoingResponse.locals.sendOutgoingRequest);
-            }
+            resendOutgoingRequest
           );
 
           retriesCount += 1;

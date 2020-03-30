@@ -11,7 +11,6 @@ const db = pgp({
 });
 
 const init = (req, res, next) => {
-	console.log('\n\nreq: ', req);
 	ssh.connect({
 	  host: `${process.env.TIMESCALE_HOSTNAME}`,
 	  username: `${process.env.SSH_USERNAME}`,
@@ -59,7 +58,7 @@ const reqFormatter = (reqObject) => {
 };
 
 const resFormatter = (resObject) => {
-	const headers = resObject.req.headers;
+	const headers = resObject.getHeaders();
 
 	return {
 		trace_id: resObject.locals.apexCorrelationId,

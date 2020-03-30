@@ -79,7 +79,7 @@ module.exports = () => {
                   outgoingResponse,
                 );
 
-                resolve();
+                resolve(incomingResponse);
               }
             });
           },
