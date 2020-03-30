@@ -1,5 +1,6 @@
 const fs = require('fs');
 const yaml = require('js-yaml');
+const apexLogger = require('./log');
 
 module.exports = () => {
   return (incomingRequest, outgoingResponse, next) => {
@@ -22,19 +23,32 @@ module.exports = () => {
         setTimeout(() => {
           console.log(`Backed off for ${BACKOFF}ms`);
 
-          sendOutgoingRequest().then(next, resendOutgoingRequest);
+          sendOutgoingRequest().then(
+            (response) => {
+              console.log('successful response status code: ', response.statusCode);
+              apexLogger.sendLog(response);
+              next(); 
+            }, 
+            (response) => {
+              console.log('unsuccessful response: ', response);
+              apexLogger.sendLog(response);
+              resendOutgoingRequest(outgoingResponse.locals.sendOutgoingRequest);
+            }
+          );
+
           retriesCount += 1;
           console.log(`Retried request (attempt #${retriesCount})\n`);
         }, BACKOFF);
       } else {
         outgoingResponse.status(504);
+        apexLogger.sendLog(outgoingResponse);
         next();
       }
     };
 
-    outgoingResponse.locals.firstOutgoingRequest.then(
+    outgoingResponse.locals.firstOutgoingRequest().then(
       next,
-      resendOutgoingRequest,
+      () => resendOutgoingRequest(outgoingResponse.locals.sendOutgoingRequest),
     );
   };
 };

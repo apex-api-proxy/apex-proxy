@@ -2,6 +2,7 @@ const https = require('https');
 const querystring = require('querystring');
 const fs = require('fs');
 const yaml = require('js-yaml');
+const apexLogger = require('./log');
 
 const generateOutgoingRequestOptions = (incomingRequest) => {
   const incomingRequestPathWithQuery =
@@ -21,6 +22,7 @@ const buildOutgoingResponse = (
   incomingResponseBody,
   outgoingResponse,
 ) => {
+  console.log('incomingResponse: ', incomingResponse);
   outgoingResponse.status(incomingResponse.statusCode);
   outgoingResponse.set(incomingResponse.headers);
   outgoingResponse.locals.body = incomingResponseBody;
@@ -67,7 +69,7 @@ module.exports = () => {
                 clearTimeout(timeoutId);
 
                 incomingResponseBody = Buffer.concat(incomingResponseChunks);
-
+                
                 buildOutgoingResponse(
                   incomingResponse,
                   incomingResponseBody,
@@ -84,7 +86,15 @@ module.exports = () => {
           // console.error(error);
         });
 
-        outgoingRequest.write(incomingRequest.body);
+        if (incomingRequest.body && typeof incomingRequest.body !== "object") {
+          outgoingRequest.write(incomingRequest.body);
+        }
+
+        // console.log('outgoingRequest.headers before apexLogger sends: ', outgoingRequest.headers);
+        apexLogger.sendLog({
+          ...outgoingRequest,
+          headers: outgoingRequestOptions.headers
+        });
 
         outgoingRequest.end();
 
@@ -95,10 +105,11 @@ module.exports = () => {
 
           reject(outgoingResponse.locals.sendOutgoingRequest);
         }, TIMEOUT);
-      });
+      })
+      .catch(e => console.log(e));
     };
 
-    outgoingResponse.locals.firstOutgoingRequest = outgoingResponse.locals.sendOutgoingRequest();
+    outgoingResponse.locals.firstOutgoingRequest = outgoingResponse.locals.sendOutgoingRequest;
 
     next();
   };

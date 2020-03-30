@@ -11,14 +11,7 @@ const db = pgp({
 });
 
 const init = (req, res, next) => {
-	res.locals.correlationId = req.headers['x-apex-correlation-id'] || req.headers['X-Apex-Correlation-ID'];
-
-	const requestFinishing = new Promise((resolve, reject) => {
-	  res.on('finish', () => {
-	    resolve();
-	  });
-	});
-
+	console.log('\n\nreq: ', req);
 	ssh.connect({
 	  host: `${process.env.TIMESCALE_HOSTNAME}`,
 	  username: `${process.env.SSH_USERNAME}`,
@@ -48,15 +41,14 @@ const sendLog = (reqRes) => {
 		console.log('database write succeeded.');
 	})
 	.catch( e => {
-		console.log('Logging db error:');
-		console.log(e);
+		console.log('An error occurred while writing to db: ', e);
 	});
 };
 
 const reqFormatter = (reqObject) => {
 	console.log('request headers: ', reqObject.headers);
 	const headers = reqObject.headers;
-	const correlationId = headers['x-apex-correlation-id'] || headers['X-Apex-Correlation-ID'];
+	const correlationId = headers['X-Apex-Correlation-ID'] || headers['x-apex-correlation-id'];
 
 	return {
 		trace_id: correlationId,
@@ -68,10 +60,9 @@ const reqFormatter = (reqObject) => {
 
 const resFormatter = (resObject) => {
 	const headers = resObject.req.headers;
-	const correlationId = resObject.locals.apexCorrelationId;
 
 	return {
-		trace_id: correlationId,
+		trace_id: resObject.locals.apexCorrelationId,
 		headers: JSON.stringify(headers),
 		body: resObject.locals.body,
 		status_code: resObject.statusCode
@@ -79,11 +70,3 @@ const resFormatter = (resObject) => {
 };
 
 module.exports = { init, sendLog };
-
-		// .then( _ => {
-		// 	requestFinishing.then(() => {
-		// 		console.log('res.locals.body: ', typeof res.locals.body);
-		// 		const formattedResponse = resFormatter(res, correlationId, res.locals.body);
-		// 		sendLog(formattedResponse)
-		// 	});
-		// })
