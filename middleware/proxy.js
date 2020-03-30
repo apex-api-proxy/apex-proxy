@@ -65,6 +65,9 @@ module.exports = () => {
             incomingResponse.on('end', () => {
               // Ensure that we don't build outgoingResponse if outgoingRequest was aborted;
               // otherwise buildOutgoingResponse() below would throw error
+
+              console.log('incomingResponse: ', incomingResponse);
+
               if (incomingResponse.aborted === false) {
                 clearTimeout(timeoutId);
 
