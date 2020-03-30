@@ -23,15 +23,7 @@ module.exports = () => {
         setTimeout(() => {
           console.log(`Backed off for ${BACKOFF}ms`);
 
-          sendOutgoingRequest().then(
-            (incomingResponse) => {
-              outgoingResponse.status(incomingResponse.statusCode);
-              console.log('successful response status code: ', incomingResponse.statusCode);
-              apexLogger.sendLog(incomingResponse);
-              next(); 
-            }, 
-            resendOutgoingRequest
-          );
+          sendOutgoingRequest().then(next, resendOutgoingRequest);
 
           retriesCount += 1;
           console.log(`Retried request (attempt #${retriesCount})\n`);
@@ -43,9 +35,8 @@ module.exports = () => {
       }
     };
 
-    outgoingResponse.locals.firstOutgoingRequest().then(
-      next,
-      () => resendOutgoingRequest(outgoingResponse.locals.sendOutgoingRequest),
-    );
+    outgoingResponse.locals
+      .sendOutgoingRequest()
+      .then(next, resendOutgoingRequest);
   };
 };

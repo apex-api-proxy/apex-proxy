@@ -22,7 +22,7 @@ const buildOutgoingResponse = (
   incomingResponseBody,
   outgoingResponse,
 ) => {
-  console.log('incomingResponse: ', incomingResponse);
+  // console.log('incomingResponse: ', incomingResponse);
   outgoingResponse.status(incomingResponse.statusCode);
   outgoingResponse.set(incomingResponse.headers);
   outgoingResponse.locals.body = incomingResponseBody;
@@ -66,20 +66,24 @@ module.exports = () => {
               // Ensure that we don't build outgoingResponse if outgoingRequest was aborted;
               // otherwise buildOutgoingResponse() below would throw error
 
-              console.log('incomingResponse: ', incomingResponse);
+              // console.log('incomingResponse: ', incomingResponse);
+
+              console.log('in end');
 
               if (incomingResponse.aborted === false) {
                 clearTimeout(timeoutId);
 
                 incomingResponseBody = Buffer.concat(incomingResponseChunks);
-                
+
                 buildOutgoingResponse(
                   incomingResponse,
                   incomingResponseBody,
                   outgoingResponse,
                 );
 
-                resolve(incomingResponse);
+                apexLogger.sendLog(incomingResponse);
+
+                resolve();
               }
             });
           },
@@ -89,15 +93,15 @@ module.exports = () => {
           // console.error(error);
         });
 
-        if (incomingRequest.body && typeof incomingRequest.body !== "object") {
+        if (incomingRequest.body && typeof incomingRequest.body !== 'object') {
           outgoingRequest.write(incomingRequest.body);
         }
 
         // console.log('outgoingRequest.headers before apexLogger sends: ', outgoingRequest.headers);
-        apexLogger.sendLog({
-          ...outgoingRequest,
-          headers: outgoingRequestOptions.headers
-        });
+        // apexLogger.sendLog({
+        //   ...outgoingRequest,
+        //   headers: outgoingRequestOptions.headers,
+        // });
 
         outgoingRequest.end();
 
@@ -108,11 +112,11 @@ module.exports = () => {
 
           reject(outgoingResponse.locals.sendOutgoingRequest);
         }, TIMEOUT);
-      })
-      .catch(e => console.log(e));
+      }).catch((e) => console.log(e));
     };
 
-    outgoingResponse.locals.firstOutgoingRequest = outgoingResponse.locals.sendOutgoingRequest;
+    // outgoingResponse.locals.sendFirstOutgoingRequest =
+    //   outgoingResponse.locals.sendOutgoingRequest;
 
     next();
   };
