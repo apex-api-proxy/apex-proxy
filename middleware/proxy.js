@@ -4,6 +4,25 @@ const fs = require('fs');
 const yaml = require('js-yaml');
 const apexLogger = require('./apexLogger');
 
+function LogSendersQueue() {
+  this.queue = [];
+
+  this.enqueue = (logSender) => {
+    this.queue.push(logSender);
+  };
+
+  this.dequeue = () => {
+    return this.queue.shift();
+  };
+
+  this.sendAllLogs = () => {
+    if (this.queue.length > 0) {
+      const logSender = this.dequeue();
+      logSender().then(this.sendAllLogs);
+    }
+  };
+}
+
 const generateOutgoingRequestOptions = (incomingRequest) => {
   const incomingRequestPathWithQuery =
     incomingRequest.path + '?' + querystring.stringify(incomingRequest.query);
@@ -27,8 +46,71 @@ const buildOutgoingResponse = (
   outgoingResponse.locals.body = incomingResponseBody;
 };
 
+const incomingRequestLogSender = (incomingRequest, outgoingResponse) => {
+  const incomingRequestPathWithQuery =
+    incomingRequest.path + '?' + querystring.stringify(incomingRequest.query);
+
+  const method = incomingRequest.method;
+  const host = incomingRequest.headers['host'];
+  const port = 443;
+  const path = incomingRequestPathWithQuery;
+  const headers = incomingRequest.headers;
+  const body = incomingRequest.body;
+  const correlationId = headers['X-Apex-Correlation-ID'];
+
+  return async () => {
+    let result;
+
+    await outgoingResponse.locals.connectToLogsDb.then(() => {
+      result = apexLogger.sendLog(correlationId, headers, body).then(() => {
+        console.log('just logged incomingRequest above');
+      });
+    });
+
+    return result;
+  };
+};
+
+const outgoingRequestLongSender = (incomingRequest, outgoingRequest) => {
+  const correlationId = incomingRequest.headers['X-Apex-Correlation-ID'];
+  const headers = incomingRequest.headers;
+  const body = incomingRequest.body;
+  const method = outgoingRequest.method;
+  const path = outgoingRequest.path;
+
+  return () => {
+    return apexLogger.sendLog(correlationId, headers, body).then(() => {
+      console.log('just logged outgoingRequest above');
+    });
+  };
+};
+
+const incomingResponseLogSender = (
+  incomingResponse,
+  incomingResponseBody,
+  outgoingResponse,
+) => {
+  const correlationId = outgoingResponse.locals.apexCorrelationId;
+  const headers = incomingResponse.headers;
+  const body = incomingResponseBody.toString();
+  const status = incomingResponse.statusCode;
+
+  return () => {
+    return apexLogger.sendLog(correlationId, headers, body, status).then(() => {
+      console.log('just logged incomingResponse above');
+    });
+  };
+};
+
 module.exports = () => {
   return (incomingRequest, outgoingResponse, next) => {
+    const logSendersQueue = new LogSendersQueue();
+    outgoingResponse.locals.logSendersQueue = logSendersQueue;
+
+    logSendersQueue.enqueue(
+      incomingRequestLogSender(incomingRequest, outgoingResponse),
+    );
+
     // Extract reading config data to its own middleware?
     let config;
 
@@ -63,22 +145,18 @@ module.exports = () => {
             incomingResponse.on('end', () => {
               // Ensure that we don't build outgoingResponse if outgoingRequest was aborted;
               // otherwise buildOutgoingResponse() below would throw error
-
               if (incomingResponse.aborted === false) {
                 clearTimeout(timeoutId);
 
                 incomingResponseBody = Buffer.concat(incomingResponseChunks);
 
-                const correlationId = outgoingResponse.locals.apexCorrelationId;
-                const headers = incomingResponse.headers;
-                const body = incomingResponseBody.toString();
-                const status = incomingResponse.statusCode;
-
-                apexLogger
-                  .sendLog(correlationId, headers, body, status)
-                  .then(() => {
-                    console.log('just logged incomingResponse above');
-                  });
+                logSendersQueue.enqueue(
+                  incomingResponseLogSender(
+                    incomingResponse,
+                    incomingResponseBody,
+                    outgoingResponse,
+                  ),
+                );
 
                 buildOutgoingResponse(
                   incomingResponse,
@@ -102,15 +180,9 @@ module.exports = () => {
 
         outgoingRequest.end();
 
-        const correlationId = incomingRequest.headers['X-Apex-Correlation-ID'];
-        const headers = incomingRequest.headers;
-        const body = incomingRequest.body;
-        const method = outgoingRequest.method;
-        const path = outgoingRequest.path;
-
-        apexLogger.sendLog(correlationId, headers, body).then(() => {
-          console.log('just logged outgoingRequest above');
-        });
+        logSendersQueue.enqueue(
+          outgoingRequestLongSender(incomingRequest, outgoingRequest),
+        );
 
         timeoutId = setTimeout(() => {
           outgoingRequest.abort();

@@ -1,7 +1,6 @@
 require('dotenv').config();
 const node_ssh = require('node-ssh');
 const pgp = require('pg-promise')();
-const querystring = require('querystring');
 
 const ssh = new node_ssh();
 const db = pgp({
@@ -14,34 +13,20 @@ const db = pgp({
 
 const init = () => {
   return (incomingRequest, outgoingResponse, next) => {
-    ssh
-      .connect({
-        host: `${process.env.TIMESCALE_HOSTNAME}`,
-        username: `${process.env.SSH_USERNAME}`,
-        privateKey: `${process.env.SSH_KEY_LOCATION}`,
-      })
-      .then(() => {
-        const incomingRequestPathWithQuery =
-          incomingRequest.path +
-          '?' +
-          querystring.stringify(incomingRequest.query);
-
-        const method = incomingRequest.method;
-        const host = incomingRequest.headers['host'];
-        const port = 443;
-        const path = incomingRequestPathWithQuery;
-        const headers = incomingRequest.headers;
-        const body = incomingRequest.body;
-        const correlationId = headers['X-Apex-Correlation-ID'];
-
-        sendLog(correlationId, headers, body).then(() => {
-          console.log('just logged incomingRequest above');
+    outgoingResponse.locals.connectToLogsDb = new Promise((resolve, reject) => {
+      ssh
+        .connect({
+          host: `${process.env.TIMESCALE_HOSTNAME}`,
+          username: `${process.env.SSH_USERNAME}`,
+          privateKey: `${process.env.SSH_KEY_LOCATION}`,
+        })
+        .then(resolve)
+        .catch((e) => {
+          console.log(e);
         });
-      })
-      .then(next)
-      .catch((e) => {
-        console.log(e);
-      });
+    });
+
+    next();
   };
 };
 
