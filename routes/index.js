@@ -1,14 +1,20 @@
 const express = require('express');
-const proxiedRequestSender = require('../middleware/proxiedRequestSender');
+const proxy = require('../middleware/proxy');
+const retry = require('../middleware/retry');
 const tracer = require('../middleware/tracer');
-// const https = require('https');
-// const querystring = require('querystring');
+const apexLogger = require('../middleware/apexLogger');
+
+const outgoingResponseSender = require('../middleware/outgoingResponseSender');
 
 const router = express.Router();
 
-router.get('/*', proxiedRequestSender(), tracer.traceResponse(), (req, res) => {
-  const outgoingResponseBody = res.locals.body;
-  res.send(outgoingResponseBody);
-});
+router.get(
+  '/*',
+  apexLogger.init(),
+  proxy(),
+  retry(),
+  tracer.traceResponse(),
+  outgoingResponseSender(),
+);
 
 module.exports = router;
