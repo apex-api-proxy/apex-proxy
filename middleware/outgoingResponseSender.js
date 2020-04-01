@@ -14,13 +14,14 @@ const logOutgoingResponse = (outgoingResponse, body) => {
 
 module.exports = () => {
   return (incomingRequest, outgoingResponse) => {
-    const body = outgoingResponse.locals.body.toString();
-    const logSendersQueue = outgoingResponse.locals.logSendersQueue;
+    // const body = outgoingResponse.locals.body.toString();
+    // const logSendersQueue = outgoingResponse.locals.logSendersQueue;
 
-    logSendersQueue.enqueue(logOutgoingResponse(outgoingResponse, body));
+    // logSendersQueue.enqueue(logOutgoingResponse(outgoingResponse, body));
 
-    logSendersQueue.sendAllLogs();
+    // logSendersQueue.sendAllLogs();
 
-    outgoingResponse.send(body);
+    // outgoingResponse.send(body);
+    outgoingResponse.send("test");
   };
 };
