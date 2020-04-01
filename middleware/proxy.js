@@ -156,7 +156,7 @@ module.exports = () => {
 
         outgoingRequest.on('error', (error) => {
           console.log('error while proxy was sending outgoingRequest:');
-          console.error(error);
+          console.log(error);
           console.log('\n');
         });
 
@@ -175,7 +175,7 @@ module.exports = () => {
 
           reject(outgoingResponse.locals.sendOutgoingRequest);
         }, TIMEOUT);
-      }).catch((e) => console.log(e));
+      });
     };
 
     next();
