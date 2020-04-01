@@ -1,5 +1,3 @@
-const { traceResponse } = require('./tracer');
-
 module.exports = () => {
   return (err, incomingRequest, outgoingResponse, next) => {
     outgoingResponse.status(403);

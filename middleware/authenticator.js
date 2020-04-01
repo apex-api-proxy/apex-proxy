@@ -44,6 +44,7 @@ module.exports = () => {
     //   },
     // )(incomingRequest, outgoingResponse, next);
 
-    next(new Error('Could not authenticate'));
+    // next(new Error('Could not authenticate'));
+    next();
   };
 };

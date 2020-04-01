@@ -1,5 +1,5 @@
 const express = require('express');
-const tracer = require('./middleware/tracer');
+const { requestTracer } = require('./middleware/tracer');
 const logger = require('morgan');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
@@ -10,7 +10,7 @@ const indexRouter = require('./routes/index');
 
 const app = express();
 
-app.use(tracer.traceRequest());
+app.use(requestTracer());
 app.use(logger('dev'));
 // app.use(express.json());
 // app.use(express.urlencoded({ extended: false }));
