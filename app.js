@@ -17,7 +17,7 @@ app.use(logger('dev'));
 
 // May not support all request bodies, maximum size of
 // request body defaults to 100kb
-app.use(bodyParser.text({ type: '*/*' }));
+app.use(bodyParser.raw({ type: '*/*' }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 

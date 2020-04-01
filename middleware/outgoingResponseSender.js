@@ -1,12 +1,13 @@
-const apexLogger = require('./apexLogger');
+const { sendLog } = require('./apexLogger');
 
-const logOutgoingResponse = (outgoingResponse, body) => {
+const logOutgoingResponse = (outgoingResponse) => {
   const correlationId = outgoingResponse.locals.apexCorrelationId;
   const headers = outgoingResponse.getHeaders();
   const status = outgoingResponse.statusCode;
+  const body = outgoingResponse.locals.body;
 
   return () => {
-    return apexLogger.sendLog(correlationId, headers, body, status).then(() => {
+    return sendLog(correlationId, headers, body, status).then(() => {
       console.log('just logged outgoingResponse above');
     });
   };
@@ -14,11 +15,10 @@ const logOutgoingResponse = (outgoingResponse, body) => {
 
 module.exports = () => {
   return (incomingRequest, outgoingResponse) => {
-    console.log('outgoingResponse.locals.body:', outgoingResponse.locals.body);
-    const body = outgoingResponse.locals.body.toString();
+    const body = outgoingResponse.locals.body;
     const logSendersQueue = outgoingResponse.locals.logSendersQueue;
 
-    logSendersQueue.enqueue(logOutgoingResponse(outgoingResponse, body));
+    logSendersQueue.enqueue(logOutgoingResponse(outgoingResponse));
 
     logSendersQueue.sendAllLogs();
 
