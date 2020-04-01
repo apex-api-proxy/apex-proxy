@@ -4,24 +4,7 @@ const fs = require('fs');
 const yaml = require('js-yaml');
 const apexLogger = require('./apexLogger');
 
-function LogSendersQueue() {
-  this.queue = [];
-
-  this.enqueue = (logSender) => {
-    this.queue.push(logSender);
-  };
-
-  this.dequeue = () => {
-    return this.queue.shift();
-  };
-
-  this.sendAllLogs = () => {
-    if (this.queue.length > 0) {
-      const logSender = this.dequeue();
-      logSender().then(this.sendAllLogs);
-    }
-  };
-}
+const zlib = require('zlib');
 
 const generateOutgoingRequestOptions = (incomingRequest) => {
   const incomingRequestPathWithQuery =
@@ -104,8 +87,8 @@ const incomingResponseLogSender = (
 
 module.exports = () => {
   return (incomingRequest, outgoingResponse, next) => {
-    const logSendersQueue = new LogSendersQueue();
-    outgoingResponse.locals.logSendersQueue = logSendersQueue;
+    console.log('incomingRequest.body:', incomingRequest.body);
+    const logSendersQueue = outgoingResponse.locals.logSendersQueue;
 
     logSendersQueue.enqueue(
       incomingRequestLogSender(incomingRequest, outgoingResponse),
@@ -133,16 +116,20 @@ module.exports = () => {
         const outgoingRequest = https.request(
           outgoingRequestOptions,
           (incomingResponse) => {
+            const gunzip = zlib.createGunzip();
+
+            incomingResponse.pipe(gunzip);
+
             const incomingResponseChunks = [];
             let incomingResponseBody;
 
-            incomingResponse.on('data', (d) => {
+            gunzip.on('data', function(d) {
               // Any other possibilities for how responses are sent, except for in chunks?
               // How about streams or, more generally, very large files?
               incomingResponseChunks.push(d);
             });
 
-            incomingResponse.on('end', () => {
+            gunzip.on('end', () => {
               // Ensure that we don't build outgoingResponse if outgoingRequest was aborted;
               // otherwise buildOutgoingResponse() below would throw error
               if (incomingResponse.aborted === false) {
@@ -150,6 +137,7 @@ module.exports = () => {
 
                 incomingResponseBody = Buffer.concat(incomingResponseChunks);
 
+                console.log('incomingResponseBody:', incomingResponseBody);
                 logSendersQueue.enqueue(
                   incomingResponseLogSender(
                     incomingResponse,

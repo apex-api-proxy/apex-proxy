@@ -11,6 +11,27 @@ const db = pgp({
   password: `${process.env.DB_PASSWORD}`,
 });
 
+class LogSendersQueue {
+  constructor() {
+    this.queue = [];
+  }
+
+  enqueue(logSender) {
+    this.queue.push(logSender);
+  }
+
+  dequeue() {
+    return this.queue.shift();
+  }
+
+  sendAllLogs = () => {
+    if (this.queue.length > 0) {
+      const logSender = this.dequeue();
+      logSender().then(this.sendAllLogs);
+    }
+  };
+}
+
 const init = () => {
   return (incomingRequest, outgoingResponse, next) => {
     outgoingResponse.locals.connectToLogsDb = new Promise((resolve, reject) => {
@@ -25,6 +46,8 @@ const init = () => {
           console.log(e);
         });
     });
+
+    outgoingResponse.locals.logSendersQueue = new LogSendersQueue();
 
     next();
   };

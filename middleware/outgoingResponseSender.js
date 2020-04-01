@@ -14,6 +14,7 @@ const logOutgoingResponse = (outgoingResponse, body) => {
 
 module.exports = () => {
   return (incomingRequest, outgoingResponse) => {
+    console.log('outgoingResponse.locals.body:', outgoingResponse.locals.body);
     const body = outgoingResponse.locals.body.toString();
     const logSendersQueue = outgoingResponse.locals.logSendersQueue;
 
