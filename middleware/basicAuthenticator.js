@@ -37,8 +37,6 @@ module.exports = () => {
     } else {
       const credentials = basicAuth.parse(proxyAuthorizationHeader);
 
-      console.log(credentials);
-
       if (credentials === undefined) {
         outgoingResponse.status(403);
 
