@@ -1,0 +1,14 @@
+---
+default:
+  default:
+    retry:
+      timeout: 1
+      max retry attempts: 4
+      backoff: 3000
+
+postman:
+  cnn:
+    retry:
+      timeout: 10000
+      max retry attempts: 3
+      backoff: 3500
