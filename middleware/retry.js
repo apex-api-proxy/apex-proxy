@@ -3,13 +3,12 @@ const yaml = require('js-yaml');
 
 module.exports = () => {
   return (incomingRequest, outgoingResponse, next) => {
-    // Extract reading config data to its own middleware?
     let config;
 
-    try {
-      config = yaml.safeLoad(fs.readFileSync('config/config.yml', 'utf8'));
-    } catch (e) {
-      console.log(e);
+    if (res.locals.config) {
+      config = res.locals.config;
+    } else {
+      next();
     }
 
     const MAX_RETRY_ATTEMPTS = config['max retry attempts'];
