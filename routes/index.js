@@ -5,7 +5,6 @@ const {
 } = require('../middleware/apexLogger');
 const queueIncomingRequestLogSender = require('../middleware/queueIncomingRequestLogSender');
 const queueOutgoingResponseLogSender = require('../middleware/queueOutgoingResponseLogSender');
-const authenticator = require('../middleware/authenticator');
 const basicAuthenticator = require('../middleware/basicAuthenticator');
 const proxy = require('../middleware/proxy');
 const retry = require('../middleware/retry');
@@ -20,7 +19,6 @@ router.get(
   '/*',
   logsDbConnector(),
   queueIncomingRequestLogSender(),
-  // authenticator(),
   basicAuthenticator(),
   proxy(),
   retry(),

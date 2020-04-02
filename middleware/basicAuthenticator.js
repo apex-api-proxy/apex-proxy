@@ -1,4 +1,5 @@
 const basicAuth = require('basic-auth');
+const AuthError = require('../helpers/AuthError');
 
 class Service {
   static findOne(credentials) {
@@ -29,7 +30,7 @@ module.exports = () => {
       outgoingResponse.set({ 'Proxy-Authenticate': 'Basic' });
 
       next(
-        new Error(
+        new AuthError(
           "Request must be authenticated with the 'Proxy-Authorization' header",
         ),
       );
@@ -41,13 +42,15 @@ module.exports = () => {
       if (credentials === undefined) {
         outgoingResponse.status(403);
 
-        next(new Error('The supplied authentication credentials are invalid.'));
+        next(
+          new AuthError('The supplied authentication credentials are invalid.'),
+        );
       } else {
         Service.findOne(credentials).then(next, () => {
           outgoingResponse.status(403);
 
           next(
-            new Error(
+            new AuthError(
               'A service could not be found or authenticated with the supplied credentials.',
             ),
           );
