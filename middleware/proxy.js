@@ -60,6 +60,7 @@ const incomingResponseLogSender = (
 
 module.exports = () => {
   return (incomingRequest, outgoingResponse, next) => {
+    console.log('incomingRequest: ', incomingRequest);
     // Extract reading config data to its own middleware?
     let config;
 
