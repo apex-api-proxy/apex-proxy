@@ -6,6 +6,7 @@ const {
 const queueIncomingRequestLogSender = require('../middleware/queueIncomingRequestLogSender');
 const queueOutgoingResponseLogSender = require('../middleware/queueOutgoingResponseLogSender');
 const authenticator = require('../middleware/authenticator');
+const basicAuthenticator = require('../middleware/basicAuthenticator');
 const proxy = require('../middleware/proxy');
 const retry = require('../middleware/retry');
 const authErrorHandler = require('../middleware/authErrorHandler');
@@ -19,7 +20,8 @@ router.get(
   '/*',
   logsDbConnector(),
   queueIncomingRequestLogSender(),
-  authenticator(),
+  // authenticator(),
+  basicAuthenticator(),
   proxy(),
   retry(),
   authErrorHandler(),

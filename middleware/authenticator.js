@@ -2,24 +2,29 @@ const passport = require('passport');
 const BearerStrategy = require('passport-http-bearer').Strategy;
 
 class Service {
-  static findOne(token, callback) {
+  static findOne({ token }, callback) {
     const stubToken = '89sfioq34eafs';
 
+    console.log('token:', token);
     if (token === stubToken) {
       callback(null, new Service());
+    } else {
+      callback(null, false);
     }
   }
 }
 
 passport.use(
   new BearerStrategy((token, done) => {
-    Service.findOne({ token }, (error, service) => {
-      if (error) {
-        return done(error);
+    Service.findOne({ token }, (err, service) => {
+      if (err) {
+        return done(err);
       }
+
       if (!service) {
         return done(null, false);
       }
+
       return done(null, service, { scope: 'all' });
     });
   }),
@@ -27,24 +32,25 @@ passport.use(
 
 module.exports = () => {
   return (incomingRequest, outgoingResponse, next) => {
-    // passport.authenticate(
-    //   'bearer',
-    //   { session: false },
-    //   (error, service, info) => {
-    //     if (error) {
-    //       outgoingResponse.status(500);
-    //       return next(error);
-    //     }
-    //     if (!service) {
-    //       outgoingResponse.status(403);
-    //       next();
-    //     }
+    passport.authenticate(
+      'bearer',
+      { session: false },
+      (err, service, info) => {
+        if (err) {
+          outgoingResponse.status(500);
 
-    //     next();
-    //   },
-    // )(incomingRequest, outgoingResponse, next);
+          next(err);
+        }
 
-    // next(new Error('Could not authenticate'));
-    next();
+        if (!service) {
+          outgoingResponse.status(403);
+          next(
+            new Error('Apex could not authenticate the supplied Bearer token.'),
+          );
+        }
+
+        next();
+      },
+    )(incomingRequest, outgoingResponse, next);
   };
 };

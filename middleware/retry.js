@@ -22,6 +22,7 @@ module.exports = () => {
         setTimeout(() => {
           console.log(`Backed off for ${BACKOFF}ms`);
 
+          console.log('sendOutgoingRequest:', sendOutgoingRequest);
           sendOutgoingRequest().then(next, resendOutgoingRequest);
 
           retriesCount += 1;
