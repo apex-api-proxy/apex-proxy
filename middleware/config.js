@@ -8,7 +8,8 @@ module.exports = () => {
 	return (req, res, next) => {
 		const client = redis.createClient(port, host);
 		const headers = req.headers;
-		const configKey = headers['X-Forwarded-For'] + headers['X-Forwarded-Port'] + headers['Host'];
+		// const configKey = headers['X-Forwarded-For'] + headers['X-Forwarded-Port'] + headers['Host'];
+		const configKey = "test";
 
 		client.on('connect', () => {
 		  client.get(configKey, (err, reply) => {
@@ -19,7 +20,7 @@ module.exports = () => {
 		    }
 
 		    console.log('connect res.locals.config', res.locals.config);
-		    res.send('connected!');
+		    res.send(res.locals.config);
 		    // res.send(res.locals.config);
 		    // next();
 		  });
