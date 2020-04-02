@@ -1,45 +1,56 @@
 const redis = require('redis');
-const port = process.env.REDIS_PORT;
-const host = process.env.REDIS_IP;
 const fs = require('fs');
 const yaml = require('js-yaml');
 
+const PORT = process.env.REDIS_PORT;
+const HOST = process.env.REDIS_IP;
+const CONFIG_KEY = 'test';
+
 module.exports = () => {
-	return (req, res, next) => {
-		const client = redis.createClient(port, host);
-		const headers = req.headers;
-		// const configKey = headers['X-Forwarded-For'] + headers['X-Forwarded-Port'] + headers['Host'];
-		const configKey = "test";
+  return (outgoingRequest, outgoingResponse, next) => {
+    const client = redis.createClient(PORT, HOST);
+    const headers = outgoingRequest.headers;
+    // const CONFIG_KEY = headers['X-Forwarded-For'] + headers['X-Forwarded-Port'] + headers['Host'];
 
-		client.on('connect', () => {
-		  client.get(configKey, (err, reply) => {
-		    if (reply) {
-		    	res.locals.config = reply;
-		    } else {
-		    	res.locals.config = yaml.safeLoad(fs.readFileSync('config/defaultConfig.yml', 'utf8'));
-		    }
+    client.on('connect', () => {
+      client.get(CONFIG_KEY, (err, reply) => {
+        if (reply) {
+          outgoingResponse.locals.config = reply;
+        } else {
+          outgoingResponse.locals.config = yaml.safeLoad(
+            fs.readFileSync('config/defaultConfig.yml', 'utf8'),
+          );
+        }
 
-		    console.log('connect res.locals.config', res.locals.config);
-		    res.send(res.locals.config);
-		    // res.send(res.locals.config);
-		    // next();
-		  });
-		});
+        console.log(
+          'connect outgoingResponse.locals.config',
+          outgoingResponse.locals.config,
+        );
+        outgoingResponse.send(outgoingResponse.locals.config);
+        // outgoingResponse.send(outgoingResponse.locals.config);
+        // next();
+      });
+    });
 
-		client.on('error', () => {
-		  console.log('Error connecting to configuration store.');
-		  try {
-		    res.locals.config = yaml.safeLoad(fs.readFileSync('config/defaultConfig.yml', 'utf8'));
-		  } catch (e) {
-		    console.log(e);
-		  }
+    client.on('error', () => {
+      console.log('Error connecting to configuration store.');
+      try {
+        outgoingResponse.locals.config = yaml.safeLoad(
+          fs.readFileSync('config/defaultConfig.yml', 'utf8'),
+        );
+      } catch (e) {
+        console.log(e);
+      }
 
-		  console.log('no connect res.locals.config', res.locals.config);
-		  res.send('failed to connect');
-		  // res.send(res.locals.config); 
-		  // next();
-		});
-	}
+      console.log(
+        'no connect outgoingResponse.locals.config',
+        outgoingResponse.locals.config,
+      );
+      outgoingResponse.send('failed to connect');
+      // outgoingResponse.send(outgoingResponse.locals.config);
+      // next();
+    });
+  };
 };
 
 /* all client microservices must set the following headers:

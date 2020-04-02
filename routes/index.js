@@ -1,5 +1,5 @@
 const express = require('express');
-const config = require('../middleware/config');
+// const config = require('../middleware/config');
 const {
   logsDbConnector,
   sendAllLogsToDb,
@@ -18,7 +18,7 @@ const router = express.Router();
 
 router.get(
   '/*',
-  config(),
+  // config(),
   logsDbConnector(),
   queueIncomingRequestLogSender(),
   basicAuthenticator(),
