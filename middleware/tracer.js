@@ -96,7 +96,7 @@ const formatCorrelationIdHeaderName = (headers, unformattedHeaderName) => {
 };
 
 module.exports = {
-  traceRequest: () => {
+  requestTracer: () => {
     return (incomingRequest, outgoingResponse, next) => {
       let headers;
       let apexCorrelationId;
@@ -113,7 +113,7 @@ module.exports = {
     };
   },
 
-  traceResponse: () => {
+  responseTracer: () => {
     return (incomingRequest, outgoingResponse, next) => {
       const headers = outgoingResponse.getHeaders();
       const apexCorrelationId = outgoingResponse.locals.apexCorrelationId;

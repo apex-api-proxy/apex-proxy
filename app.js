@@ -1,5 +1,5 @@
 const express = require('express');
-const tracer = require('./middleware/tracer');
+const { requestTracer } = require('./middleware/tracer');
 const logger = require('morgan');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
@@ -10,14 +10,14 @@ const indexRouter = require('./routes/index');
 
 const app = express();
 
-app.use(tracer.traceRequest());
+app.use(requestTracer());
 app.use(logger('dev'));
 // app.use(express.json());
 // app.use(express.urlencoded({ extended: false }));
 
 // May not support all request bodies, maximum size of
 // request body defaults to 100kb
-app.use(bodyParser.text({ type: '*/*' }));
+app.use(bodyParser.raw({ type: '*/*' }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
