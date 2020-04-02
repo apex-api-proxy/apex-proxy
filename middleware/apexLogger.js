@@ -11,7 +11,28 @@ const db = pgp({
   password: `${process.env.DB_PASSWORD}`,
 });
 
-const init = () => {
+class LogSendersQueue {
+  constructor() {
+    this.queue = [];
+  }
+
+  enqueue(logSender) {
+    this.queue.push(logSender);
+  }
+
+  dequeue() {
+    return this.queue.shift();
+  }
+
+  sendAllLogs = () => {
+    if (this.queue.length > 0) {
+      const logSender = this.dequeue();
+      logSender().then(this.sendAllLogs);
+    }
+  };
+}
+
+const logsDbConnector = () => {
   return (incomingRequest, outgoingResponse, next) => {
     outgoingResponse.locals.connectToLogsDb = new Promise((resolve, reject) => {
       ssh
@@ -25,6 +46,18 @@ const init = () => {
           console.log(e);
         });
     });
+
+    outgoingResponse.locals.logSendersQueue = new LogSendersQueue();
+
+    next();
+  };
+};
+
+const sendAllLogsToDb = () => {
+  return (incomingRequest, outgoingResponse, next) => {
+    const logSendersQueue = outgoingResponse.locals.logSendersQueue;
+
+    logSendersQueue.sendAllLogs();
 
     next();
   };
@@ -52,6 +85,7 @@ const sendLog = (trace_id, headers, body = null, status = null) => {
 };
 
 module.exports = {
-  init,
+  logsDbConnector,
   sendLog,
+  sendAllLogsToDb,
 };

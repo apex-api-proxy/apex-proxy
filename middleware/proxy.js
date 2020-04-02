@@ -2,26 +2,7 @@ const https = require('https');
 const querystring = require('querystring');
 const fs = require('fs');
 const yaml = require('js-yaml');
-const apexLogger = require('./apexLogger');
-
-function LogSendersQueue() {
-  this.queue = [];
-
-  this.enqueue = (logSender) => {
-    this.queue.push(logSender);
-  };
-
-  this.dequeue = () => {
-    return this.queue.shift();
-  };
-
-  this.sendAllLogs = () => {
-    if (this.queue.length > 0) {
-      const logSender = this.dequeue();
-      logSender().then(this.sendAllLogs);
-    }
-  };
-}
+const { sendLog } = require('./apexLogger');
 
 const generateOutgoingRequestOptions = (incomingRequest) => {
   const incomingRequestPathWithQuery =
@@ -46,32 +27,7 @@ const buildOutgoingResponse = (
   outgoingResponse.locals.body = incomingResponseBody;
 };
 
-const incomingRequestLogSender = (incomingRequest, outgoingResponse) => {
-  const incomingRequestPathWithQuery =
-    incomingRequest.path + '?' + querystring.stringify(incomingRequest.query);
-
-  const method = incomingRequest.method;
-  const host = incomingRequest.headers['host'];
-  const port = 443;
-  const path = incomingRequestPathWithQuery;
-  const headers = incomingRequest.headers;
-  const body = incomingRequest.body;
-  const correlationId = headers['X-Apex-Correlation-ID'];
-
-  return async () => {
-    let result;
-
-    await outgoingResponse.locals.connectToLogsDb.then(() => {
-      result = apexLogger.sendLog(correlationId, headers, body).then(() => {
-        console.log('just logged incomingRequest above');
-      });
-    });
-
-    return result;
-  };
-};
-
-const outgoingRequestLongSender = (incomingRequest, outgoingRequest) => {
+const outgoingRequestLogSender = (incomingRequest, outgoingRequest) => {
   const correlationId = incomingRequest.headers['X-Apex-Correlation-ID'];
   const headers = incomingRequest.headers;
   const body = incomingRequest.body;
@@ -79,7 +35,7 @@ const outgoingRequestLongSender = (incomingRequest, outgoingRequest) => {
   const path = outgoingRequest.path;
 
   return () => {
-    return apexLogger.sendLog(correlationId, headers, body).then(() => {
+    return sendLog(correlationId, headers, body).then(() => {
       console.log('just logged outgoingRequest above');
     });
   };
@@ -92,11 +48,11 @@ const incomingResponseLogSender = (
 ) => {
   const correlationId = outgoingResponse.locals.apexCorrelationId;
   const headers = incomingResponse.headers;
-  const body = incomingResponseBody.toString();
+  const body = incomingResponseBody;
   const status = incomingResponse.statusCode;
 
   return () => {
-    return apexLogger.sendLog(correlationId, headers, body, status).then(() => {
+    return sendLog(correlationId, headers, body, status).then(() => {
       console.log('just logged incomingResponse above');
     });
   };
@@ -104,13 +60,6 @@ const incomingResponseLogSender = (
 
 module.exports = () => {
   return (incomingRequest, outgoingResponse, next) => {
-    const logSendersQueue = new LogSendersQueue();
-    outgoingResponse.locals.logSendersQueue = logSendersQueue;
-
-    logSendersQueue.enqueue(
-      incomingRequestLogSender(incomingRequest, outgoingResponse),
-    );
-
     // Extract reading config data to its own middleware?
     let config;
 
@@ -128,6 +77,7 @@ module.exports = () => {
 
     outgoingResponse.locals.sendOutgoingRequest = () => {
       return new Promise((resolve, reject) => {
+        const logSendersQueue = outgoingResponse.locals.logSendersQueue;
         let timeoutId;
 
         const outgoingRequest = https.request(
@@ -136,7 +86,7 @@ module.exports = () => {
             const incomingResponseChunks = [];
             let incomingResponseBody;
 
-            incomingResponse.on('data', (d) => {
+            incomingResponse.on('data', function(d) {
               // Any other possibilities for how responses are sent, except for in chunks?
               // How about streams or, more generally, very large files?
               incomingResponseChunks.push(d);
@@ -172,7 +122,7 @@ module.exports = () => {
 
         outgoingRequest.on('error', (error) => {
           console.log('error while proxy was sending outgoingRequest:');
-          console.error(error);
+          console.log(error);
           console.log('\n');
         });
 
@@ -181,7 +131,7 @@ module.exports = () => {
         outgoingRequest.end();
 
         logSendersQueue.enqueue(
-          outgoingRequestLongSender(incomingRequest, outgoingRequest),
+          outgoingRequestLogSender(incomingRequest, outgoingRequest),
         );
 
         timeoutId = setTimeout(() => {
@@ -191,7 +141,7 @@ module.exports = () => {
 
           reject(outgoingResponse.locals.sendOutgoingRequest);
         }, TIMEOUT);
-      }).catch((e) => console.log(e));
+      });
     };
 
     next();

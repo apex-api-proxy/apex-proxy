@@ -1,9 +1,16 @@
 const express = require('express');
+const config = require('../middleware/config');
+const {
+  logsDbConnector,
+  sendAllLogsToDb,
+} = require('../middleware/apexLogger');
+const queueIncomingRequestLogSender = require('../middleware/queueIncomingRequestLogSender');
+const queueOutgoingResponseLogSender = require('../middleware/queueOutgoingResponseLogSender');
+const basicAuthenticator = require('../middleware/basicAuthenticator');
 const proxy = require('../middleware/proxy');
 const retry = require('../middleware/retry');
-const tracer = require('../middleware/tracer');
-const apexLogger = require('../middleware/apexLogger');
-const config = require('../middleware/config');
+const authErrorHandler = require('../middleware/authErrorHandler');
+const { responseTracer } = require('../middleware/tracer');
 
 const outgoingResponseSender = require('../middleware/outgoingResponseSender');
 
@@ -12,10 +19,15 @@ const router = express.Router();
 router.get(
   '/*',
   config(),
-  // apexLogger.init(),
+  logsDbConnector(),
+  queueIncomingRequestLogSender(),
+  basicAuthenticator(),
   proxy(),
-  // retry(),
-  tracer.traceResponse(),
+  retry(),
+  authErrorHandler(),
+  responseTracer(),
+  queueOutgoingResponseLogSender(),
+  sendAllLogsToDb(),
   outgoingResponseSender(),
 );
 

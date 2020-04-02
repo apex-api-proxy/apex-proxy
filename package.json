@@ -1,6 +1,9 @@
 {
   "name": "apex",
   "version": "0.0.0",
+  "engines": {
+    "node": "13.8.0"
+  },
   "private": true,
   "scripts": {
     "startOriginal": "node ./bin/www",
@@ -15,6 +18,8 @@
     "js-yaml": "^3.13.1",
     "morgan": "~1.9.1",
     "node-ssh": "^8.0.0",
+    "passport": "^0.4.1",
+    "passport-http-bearer": "^1.0.1",
     "pg-promise": "^10.4.4",
     "querystring": "^0.2.0",
     "redis": "^3.0.2",
