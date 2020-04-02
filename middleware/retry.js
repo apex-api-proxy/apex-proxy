@@ -22,7 +22,9 @@ module.exports = () => {
         setTimeout(() => {
           console.log(`Backed off for ${BACKOFF}ms`);
 
+          console.log('sendOutgoingRequest:', sendOutgoingRequest);
           sendOutgoingRequest().then(next, resendOutgoingRequest);
+
           retriesCount += 1;
           console.log(`Retried request (attempt #${retriesCount})\n`);
         }, BACKOFF);
@@ -32,9 +34,8 @@ module.exports = () => {
       }
     };
 
-    outgoingResponse.locals.firstOutgoingRequest.then(
-      next,
-      resendOutgoingRequest,
-    );
+    outgoingResponse.locals
+      .sendOutgoingRequest()
+      .then(next, resendOutgoingRequest);
   };
 };

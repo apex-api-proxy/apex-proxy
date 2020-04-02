@@ -2,6 +2,7 @@ const https = require('https');
 const querystring = require('querystring');
 const fs = require('fs');
 const yaml = require('js-yaml');
+const { sendLog } = require('./apexLogger');
 
 const generateOutgoingRequestOptions = (incomingRequest) => {
   const incomingRequestPathWithQuery =
@@ -26,7 +27,37 @@ const buildOutgoingResponse = (
   outgoingResponse.locals.body = incomingResponseBody;
 };
 
-// Also add logging logic to the proxy
+const outgoingRequestLogSender = (incomingRequest, outgoingRequest) => {
+  const correlationId = incomingRequest.headers['X-Apex-Correlation-ID'];
+  const headers = incomingRequest.headers;
+  const body = incomingRequest.body;
+  const method = outgoingRequest.method;
+  const path = outgoingRequest.path;
+
+  return () => {
+    return sendLog(correlationId, headers, body).then(() => {
+      console.log('just logged outgoingRequest above');
+    });
+  };
+};
+
+const incomingResponseLogSender = (
+  incomingResponse,
+  incomingResponseBody,
+  outgoingResponse,
+) => {
+  const correlationId = outgoingResponse.locals.apexCorrelationId;
+  const headers = incomingResponse.headers;
+  const body = incomingResponseBody;
+  const status = incomingResponse.statusCode;
+
+  return () => {
+    return sendLog(correlationId, headers, body, status).then(() => {
+      console.log('just logged incomingResponse above');
+    });
+  };
+};
+
 module.exports = () => {
   return (incomingRequest, outgoingResponse, next) => {
     // Extract reading config data to its own middleware?
@@ -46,6 +77,7 @@ module.exports = () => {
 
     outgoingResponse.locals.sendOutgoingRequest = () => {
       return new Promise((resolve, reject) => {
+        const logSendersQueue = outgoingResponse.locals.logSendersQueue;
         let timeoutId;
 
         const outgoingRequest = https.request(
@@ -54,7 +86,7 @@ module.exports = () => {
             const incomingResponseChunks = [];
             let incomingResponseBody;
 
-            incomingResponse.on('data', (d) => {
+            incomingResponse.on('data', function(d) {
               // Any other possibilities for how responses are sent, except for in chunks?
               // How about streams or, more generally, very large files?
               incomingResponseChunks.push(d);
@@ -67,6 +99,14 @@ module.exports = () => {
                 clearTimeout(timeoutId);
 
                 incomingResponseBody = Buffer.concat(incomingResponseChunks);
+
+                logSendersQueue.enqueue(
+                  incomingResponseLogSender(
+                    incomingResponse,
+                    incomingResponseBody,
+                    outgoingResponse,
+                  ),
+                );
 
                 buildOutgoingResponse(
                   incomingResponse,
@@ -81,12 +121,18 @@ module.exports = () => {
         );
 
         outgoingRequest.on('error', (error) => {
-          // console.error(error);
+          console.log('error while proxy was sending outgoingRequest:');
+          console.log(error);
+          console.log('\n');
         });
 
         outgoingRequest.write(incomingRequest.body);
 
         outgoingRequest.end();
+
+        logSendersQueue.enqueue(
+          outgoingRequestLogSender(incomingRequest, outgoingRequest),
+        );
 
         timeoutId = setTimeout(() => {
           outgoingRequest.abort();
@@ -97,8 +143,6 @@ module.exports = () => {
         }, TIMEOUT);
       });
     };
-
-    outgoingResponse.locals.firstOutgoingRequest = outgoingResponse.locals.sendOutgoingRequest();
 
     next();
   };
