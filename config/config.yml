@@ -1,4 +1,4 @@
 ---
-timeout: 10000
+timeout: 50
 max retry attempts: 4
 backoff: 3000
