@@ -1,4 +1,4 @@
 ---
-timeout: 50
-max retry attempts: 4
-backoff: 3000
+timeout: 4000
+max-retry-attempts: 5
+backoff: 2500

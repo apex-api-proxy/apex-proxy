@@ -3,23 +3,15 @@ const uuid = require('uuid');
 const APEX_CORRELATION_ID_HEADER_NAME = 'X-Apex-Correlation-ID';
 
 const addApexCorrelationIdToRequest = (headers) => {
-  let [correlationIdHeaderName, correlationId] = getApexCorrelationIdHeader(
-    headers,
-  );
+  let [correlationIdHeaderName, correlationId] = getApexCorrelationIdHeader(headers);
 
   // If incoming request doesn't already have the correlation ID header
   if (correlationIdHeaderName === null) {
     correlationId = uuid.v4();
-    return [
-      { ...headers, [APEX_CORRELATION_ID_HEADER_NAME]: correlationId },
-      correlationId,
-    ];
+    return [{ ...headers, [APEX_CORRELATION_ID_HEADER_NAME]: correlationId }, correlationId];
   }
 
-  const formattedHeaders = formatCorrelationIdHeaderName(
-    headers,
-    correlationIdHeaderName,
-  );
+  const formattedHeaders = formatCorrelationIdHeaderName(headers, correlationIdHeaderName);
 
   // If incoming request has an empty correlation ID header
   if (!correlationId) {
@@ -36,10 +28,9 @@ const addApexCorrelationIdToRequest = (headers) => {
 };
 
 const addApexCorrelationIdToResponse = (headers, requestCorrelationId) => {
-  let [
-    correlationIdHeaderName,
-    incomingResponseCorrelationId,
-  ] = getApexCorrelationIdHeader(headers);
+  let [correlationIdHeaderName, incomingResponseCorrelationId] = getApexCorrelationIdHeader(
+    headers,
+  );
 
   // If incoming response doesn't have the correlation ID header
   if (correlationIdHeaderName === null) {
@@ -49,10 +40,7 @@ const addApexCorrelationIdToResponse = (headers, requestCorrelationId) => {
     };
   }
 
-  const formattedHeaders = formatCorrelationIdHeaderName(
-    headers,
-    correlationIdHeaderName,
-  );
+  const formattedHeaders = formatCorrelationIdHeaderName(headers, correlationIdHeaderName);
 
   // If incoming response's correlation ID header value doesn't match
   // that of the outgoing request's correlation ID
@@ -101,9 +89,7 @@ module.exports = {
       let headers;
       let apexCorrelationId;
 
-      [headers, apexCorrelationId] = addApexCorrelationIdToRequest(
-        incomingRequest.headers,
-      );
+      [headers, apexCorrelationId] = addApexCorrelationIdToRequest(incomingRequest.headers);
 
       incomingRequest.headers = headers;
 
@@ -118,10 +104,7 @@ module.exports = {
       const headers = outgoingResponse.getHeaders();
       const apexCorrelationId = outgoingResponse.locals.apexCorrelationId;
 
-      const headersWithCorrelationId = addApexCorrelationIdToResponse(
-        headers,
-        apexCorrelationId,
-      );
+      const headersWithCorrelationId = addApexCorrelationIdToResponse(headers, apexCorrelationId);
 
       outgoingResponse.set(headersWithCorrelationId);
 

@@ -1,18 +1,9 @@
-const fs = require('fs');
-const yaml = require('js-yaml');
-
 module.exports = () => {
   return (incomingRequest, outgoingResponse, next) => {
-    let config;
+    const config = outgoingResponse.locals.config;
 
-    if (res.locals.config) {
-      config = res.locals.config;
-    } else {
-      next();
-    }
-
-    const MAX_RETRY_ATTEMPTS = config['max retry attempts'];
-    const BACKOFF = config['backoff'];
+    const MAX_RETRY_ATTEMPTS = Number(config['max-retry-attempts']);
+    const BACKOFF = Number(config['backoff']);
 
     let retriesCount = 0;
 
@@ -32,8 +23,20 @@ module.exports = () => {
       }
     };
 
-    outgoingResponse.locals
-      .sendOutgoingRequest()
-      .then(next, resendOutgoingRequest);
+    console.log('in retry');
+    // Send outgoingRequest for the 1st time
+    // outgoingResponse.locals.sendOutgoingRequest().then(() => {
+    //   console.log('got incomingResponse');
+    //   next();
+    // });
+    // }, resendOutgoingRequest);
+    outgoingResponse.locals.sendOutgoingRequest().then(
+      () => {
+        console.log('resolved');
+      },
+      () => {
+        console.log('rejected');
+      },
+    );
   };
 };

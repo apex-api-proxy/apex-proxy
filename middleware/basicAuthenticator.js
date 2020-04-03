@@ -1,59 +1,62 @@
 const basicAuth = require('basic-auth');
+
 const AuthError = require('../helpers/AuthError');
+const { authenticateService } = require('./configStore');
 
-class Service {
-  static findOne(credentials) {
-    const stubbedCredentials = {
-      name: 'postman',
-      pass: '8932407sfdl',
-    };
+const handleNoCredentials = (outgoingResponse, next) => {
+  outgoingResponse.status(407);
 
-    return new Promise((resolve, reject) => {
-      if (credentials.name !== stubbedCredentials.name) {
-        reject();
-      } else if (credentials.pass !== stubbedCredentials.pass) {
-        reject();
-      }
+  next(
+    new AuthError(
+      "Request must be authenticated with credentials provided in the 'X-Apex-Authorization' header.",
+    ),
+  );
+};
 
-      resolve();
-    });
-  }
-}
+const handleInvalidCredentials = (outgoingResponse, next) => {
+  outgoingResponse.status(400);
+
+  next(new AuthError("The provided credentials in the 'X-Apex-Authorization' header are invalid."));
+};
+
+const handleAuthenticationSuccess = (outgoingResponse, next, serviceName) => {
+  outgoingResponse.locals.requestingServiceName = serviceName;
+  next();
+};
+
+const handleAuthenticationFailure = (outgoingResponse, next) => {
+  outgoingResponse.status(403);
+
+  next(
+    new AuthError(
+      "A service could not be found or authenticated with the credentials provided in the 'X-Apex-Authorization' header.",
+    ),
+  );
+};
 
 module.exports = () => {
   return (incomingRequest, outgoingResponse, next) => {
-    const proxyAuthorizationHeader =
-      incomingRequest.headers['proxy-authorization'];
+    const proxyAuthorizationHeader = incomingRequest.headers['x-apex-authorization'];
 
     if (proxyAuthorizationHeader === undefined) {
-      outgoingResponse.status(407);
-      outgoingResponse.set({ 'Proxy-Authenticate': 'Basic' });
-
-      next(
-        new AuthError(
-          "Request must be authenticated with the 'Proxy-Authorization' header",
-        ),
-      );
-    } else {
-      const credentials = basicAuth.parse(proxyAuthorizationHeader);
-
-      if (credentials === undefined) {
-        outgoingResponse.status(403);
-
-        next(
-          new AuthError('The supplied authentication credentials are invalid.'),
-        );
-      } else {
-        Service.findOne(credentials).then(next, () => {
-          outgoingResponse.status(403);
-
-          next(
-            new AuthError(
-              'A service could not be found or authenticated with the supplied credentials.',
-            ),
-          );
-        });
-      }
+      handleNoCredentials(outgoingResponse, next);
+      return;
     }
+
+    const credentials = basicAuth.parse(proxyAuthorizationHeader);
+
+    if (credentials === undefined) {
+      handleInvalidCredentials(outgoingResponse, next);
+      return;
+    }
+
+    authenticateService(outgoingResponse, credentials.name, credentials.pass).then(
+      () => {
+        handleAuthenticationSuccess(outgoingResponse, next, credentials.name);
+      },
+      () => {
+        handleAuthenticationFailure(outgoingResponse, next);
+      },
+    );
   };
 };
