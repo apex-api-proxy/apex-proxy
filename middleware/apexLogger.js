@@ -58,7 +58,7 @@ const sendAllLogsToDb = () => {
   return (incomingRequest, outgoingResponse, next) => {
     const logSendersQueue = outgoingResponse.locals.logSendersQueue;
 
-    logSendersQueue.sendAllLogs(outgoingResponse);
+    logSendersQueue.sendAllLogs();
 
     next();
   };
