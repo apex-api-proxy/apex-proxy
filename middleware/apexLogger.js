@@ -1,6 +1,7 @@
 require('dotenv').config();
 const node_ssh = require('node-ssh');
 const pgp = require('pg-promise')();
+const timestamp = require('../helpers/timestamp');
 
 const ssh = new node_ssh();
 const db = pgp({
@@ -57,7 +58,7 @@ const sendAllLogsToDb = () => {
   return (incomingRequest, outgoingResponse, next) => {
     const logSendersQueue = outgoingResponse.locals.logSendersQueue;
 
-    logSendersQueue.sendAllLogs();
+    logSendersQueue.sendAllLogs(outgoingResponse);
 
     next();
   };
@@ -65,6 +66,7 @@ const sendAllLogsToDb = () => {
 
 const sendLog = (trace_id, headers, body = null, status = null) => {
   const formattedLogObject = {
+    time: timestamp(),
     trace_id: trace_id,
     headers: headers,
     body: body,
@@ -73,7 +75,7 @@ const sendLog = (trace_id, headers, body = null, status = null) => {
 
   return db
     .any(
-      'INSERT INTO apex_log_kelvin VALUES (NOW(), $<trace_id>, $<headers>, $<body>, $<status_code>);',
+      'INSERT INTO apex_log VALUES ($<time>, $<trace_id>, $<headers>, $<body>, $<status_code>);',
       formattedLogObject,
     )
     .then((_) => {
