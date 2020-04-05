@@ -17,7 +17,7 @@ const generateOutgoingRequestOptions = (incomingRequest, outgoingResponse) => {
     hostname: outgoingResponse.locals.respondingServiceHost,
     port: OUTGOING_REQUEST_PORT,
     path: incomingRequestPath,
-    headers: incomingRequest.headers,
+    headers: { ...incomingRequest.headers, Host: outgoingResponse.locals.respondingServiceHost },
   };
 };
 

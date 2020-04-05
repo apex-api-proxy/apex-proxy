@@ -102,14 +102,15 @@ const configFetcher = () => {
       client.hgetall(`${requestingServiceName}:${respondingServiceName}`, (err, config) => {
         // Currently not handling `err`, but could add logic for this later
         if (config === null) {
-          const defaultConfig = yaml.safeLoad(fs.readFileSync('config/defaultConfig.yml', 'utf8'));
-
-          outgoingResponse.locals.config = defaultConfig;
+          client.hgetall('default:default', (err, defaultConfig) => {
+            // Currently not handling `err`, but could add logic for this later
+            outgoingResponse.locals.config = defaultConfig;
+            next();
+          });
         } else {
           outgoingResponse.locals.config = config;
+          next();
         }
-
-        next();
       });
     });
   };
@@ -122,92 +123,34 @@ module.exports = {
   configFetcher,
 };
 
-// ({
-//   'service-credentials': {
-//     postman: '8932407sfdl',
-//     dagpay: '98w34lssdf',
-//   },
+({
+  'service-credentials': {
+    postman: '8932407sfdl',
+    dagpay: '98w34lssdf',
+  },
 
-//   'service-hosts': {
-//     postman: '42.56.144.53',
-//     dagpay: '53.55.63.153',
-//   },
+  'service-hosts': {
+    postman: '42.56.144.53',
+    dagpay: '53.55.63.153',
+  },
 
-//   // global defaults
-//   'default:default': {
-//     'timeout': 10000,
-//     'max-retry-attempts': 4,
-//     'backoff': 3500,
-//   },
+  // global defaults
+  'default:default': {
+    timeout: 10000,
+    'max-retry-attempts': 4,
+    backoff: 3500,
+  },
 
-//   // service overrides
-//   'postman:dagpay': {
-//     timeout: 10000,
-//     'max-retry-attempts': 4,
-//     backoff: 3500,
-//   },
+  // service overrides
+  'postman:dagpay': {
+    timeout: 10000,
+    'max-retry-attempts': 4,
+    backoff: 3500,
+  },
 
-//   'dagpay:postman': {
-//     timeout: 10000,
-//     'max-retry-attempts': 4,
-//     backoff: 3500,
-//   },
-// });
-
-// const CONFIG_KEY = 'test';
-
-// module.exports = () => {
-//   return (outgoingRequest, outgoingResponse, next) => {
-//     const client = redis.createClient(PORT, HOST);
-//     const headers = outgoingRequest.headers;
-//     // const CONFIG_KEY = headers['X-Forwarded-For'] + headers['X-Forwarded-Port'] + headers['Host'];
-
-//     client.on('connect', () => {
-//       client.get(CONFIG_KEY, (err, reply) => {
-//         if (reply) {
-//           outgoingResponse.locals.config = reply;
-//         } else {
-//           outgoingResponse.locals.config = yaml.safeLoad(
-//             fs.readFileSync('config/defaultConfig.yml', 'utf8'),
-//           );
-//         }
-
-//         console.log(
-//           'connect outgoingResponse.locals.config',
-//           outgoingResponse.locals.config,
-//         );
-//         outgoingResponse.send(outgoingResponse.locals.config);
-//         // outgoingResponse.send(outgoingResponse.locals.config);
-//         // next();
-//       });
-//     });
-
-//     client.on('error', () => {
-//       console.log('Error connecting to configuration store.');
-//       try {
-//         outgoingResponse.locals.config = yaml.safeLoad(
-//           fs.readFileSync('config/defaultConfig.yml', 'utf8'),
-//         );
-//       } catch (e) {
-//         console.log(e);
-//       }
-
-//       console.log(
-//         'no connect outgoingResponse.locals.config',
-//         outgoingResponse.locals.config,
-//       );
-//       outgoingResponse.send('failed to connect');
-//       // outgoingResponse.send(outgoingResponse.locals.config);
-//       // next();
-//     });
-//   };
-// };
-
-/* all client microservices must set the following headers:
-X-Apex-Requester // calling service's unique name, as specified in admin portal
-X-Apex-Responder // called service's unique name, as specified in admin portal
-
-Incorrect values will result in application of global configuration rules
-*/
-
-// 'X-Apex-Host': 'dagpay'
+  'dagpay:postman': {
+    timeout: 10000,
+    'max-retry-attempts': 4,
+    backoff: 3500,
+  },
+});
