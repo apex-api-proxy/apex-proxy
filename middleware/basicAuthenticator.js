@@ -1,7 +1,7 @@
 const basicAuth = require('basic-auth');
 
-const AuthError = require('../helpers/AuthError');
 const { authenticateService } = require('./configStore');
+const AuthError = require('../helpers/AuthError');
 
 const handleNoCredentials = (outgoingResponse, next) => {
   outgoingResponse.status(407);

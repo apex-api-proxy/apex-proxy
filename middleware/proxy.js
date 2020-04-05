@@ -4,6 +4,39 @@ const { sendLog } = require('./apexLogger');
 
 const OUTGOING_REQUEST_PORT = 443;
 
+const removeApexAuthorizationHeader = (headers) => {
+  const {
+    'x-apex-authorization': authorizationHeader,
+    ...headersWithoutApexAuthorization
+  } = headers;
+
+  return headersWithoutApexAuthorization;
+};
+
+const removeApexRespondingServiceNameHeader = (headers) => {
+  const {
+    'x-apex-responding-service-name': respondingServiceNameHeader,
+    ...headersWithoutApexRespondingServiceName
+  } = headers;
+
+  return headersWithoutApexRespondingServiceName;
+};
+
+const generateOutgoingRequestHeaders = (incomingRequest, outgoingResponse) => {
+  const incomingRequestHeaders = incomingRequest.headers;
+
+  const headersWithHost = {
+    ...incomingRequestHeaders,
+    Host: outgoingResponse.locals.respondingServiceHost,
+  };
+  const headersWithoutApexAuthorization = removeApexAuthorizationHeader(headersWithHost);
+  const headersWithoutApexRespondingServiceName = removeApexRespondingServiceNameHeader(
+    headersWithoutApexAuthorization,
+  );
+
+  return headersWithoutApexRespondingServiceName;
+};
+
 const generateOutgoingRequestOptions = (incomingRequest, outgoingResponse) => {
   const queryParams = incomingRequest.query;
   let incomingRequestPath = incomingRequest.path;
@@ -12,12 +45,14 @@ const generateOutgoingRequestOptions = (incomingRequest, outgoingResponse) => {
     incomingRequestPath = incomingRequestPath + '?' + querystring.stringify(queryParams);
   }
 
+  const outgoingRequestHeaders = generateOutgoingRequestHeaders(incomingRequest, outgoingResponse);
+
   return {
     method: incomingRequest.method,
     hostname: outgoingResponse.locals.respondingServiceHost,
     port: OUTGOING_REQUEST_PORT,
     path: incomingRequestPath,
-    headers: { ...incomingRequest.headers, Host: outgoingResponse.locals.respondingServiceHost },
+    headers: outgoingRequestHeaders,
   };
 };
 
@@ -32,12 +67,12 @@ const outgoingRequestLogSender = (incomingRequest, outgoingRequest, outgoingResp
   const host = outgoingResponse.locals.respondingServiceHost;
   const port = OUTGOING_REQUEST_PORT;
   const path = outgoingRequest.path;
-  const headers = incomingRequest.headers;
+  const headers = generateOutgoingRequestHeaders(incomingRequest, outgoingResponse);
   const body = incomingRequest.body;
   const correlationId = incomingRequest.headers['X-Apex-Correlation-ID'];
 
   return () => {
-    return sendLog(correlationId, headers, body).then(() => {
+    return sendLog({ correlationId, method, host, port, path, headers, body }).then(() => {
       console.log('just logged outgoingRequest above');
     });
   };
@@ -45,12 +80,12 @@ const outgoingRequestLogSender = (incomingRequest, outgoingRequest, outgoingResp
 
 const incomingResponseLogSender = (incomingResponse, incomingResponseBody, outgoingResponse) => {
   const correlationId = outgoingResponse.locals.apexCorrelationId;
+  const statusCode = incomingResponse.statusCode;
   const headers = incomingResponse.headers;
   const body = incomingResponseBody;
-  const status = incomingResponse.statusCode;
 
   return () => {
-    return sendLog(correlationId, headers, body, status).then(() => {
+    return sendLog({ correlationId, headers, body, statusCode }).then(() => {
       console.log('just logged incomingResponse above');
     });
   };

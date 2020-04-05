@@ -1,6 +1,4 @@
 const redis = require('redis');
-const fs = require('fs');
-const yaml = require('js-yaml');
 
 const ServiceDiscoveryError = require('../helpers/ServiceDiscoveryError');
 
