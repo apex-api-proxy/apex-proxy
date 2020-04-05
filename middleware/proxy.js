@@ -27,7 +27,7 @@ const buildOutgoingResponse = (incomingResponse, incomingResponseBody, outgoingR
   outgoingResponse.locals.body = incomingResponseBody;
 };
 
-const outgoingRequestLogSender = (incomingRequest, outgoingRequest) => {
+const outgoingRequestLogSender = (incomingRequest, outgoingRequest, outgoingResponse) => {
   const method = outgoingRequest.method;
   const host = outgoingResponse.locals.respondingServiceHost;
   const port = OUTGOING_REQUEST_PORT;
@@ -67,7 +67,6 @@ module.exports = () => {
 
     outgoingResponse.locals.sendOutgoingRequest = () => {
       return new Promise((resolve, reject) => {
-        console.log('in promise');
         const logSendersQueue = outgoingResponse.locals.logSendersQueue;
         let timeoutId;
 
@@ -75,7 +74,7 @@ module.exports = () => {
           const incomingResponseChunks = [];
           let incomingResponseBody;
 
-          incomingResponse.on('data', function(d) {
+          incomingResponse.on('data', function (d) {
             // Any other possibilities for how responses are sent, except for in chunks?
             // How about streams or, more generally, very large files?
             incomingResponseChunks.push(d);
@@ -95,9 +94,7 @@ module.exports = () => {
 
               buildOutgoingResponse(incomingResponse, incomingResponseBody, outgoingResponse);
 
-              console.log('about to resolve');
               resolve();
-              console.log('just resolved');
             }
           });
         });
@@ -112,18 +109,15 @@ module.exports = () => {
 
         outgoingRequest.end();
 
-        logSendersQueue.enqueue(outgoingRequestLogSender(incomingRequest, outgoingRequest));
+        logSendersQueue.enqueue(
+          outgoingRequestLogSender(incomingRequest, outgoingRequest, outgoingResponse),
+        );
 
         timeoutId = setTimeout(() => {
-          console.log('about to abort');
           outgoingRequest.abort();
 
           console.log(`Timed out after ${TIMEOUT}ms\n`);
 
-          console.log(
-            'outgoingResponse.locals.sendOutgoingRequest:',
-            outgoingResponse.locals.sendOutgoingRequest,
-          );
           reject(outgoingResponse.locals.sendOutgoingRequest);
         }, TIMEOUT);
       });

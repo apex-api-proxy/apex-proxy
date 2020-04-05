@@ -1,3 +1,5 @@
+const ServiceTimeoutError = require('../helpers/ServiceTimeoutError');
+
 module.exports = () => {
   return (incomingRequest, outgoingResponse, next) => {
     const config = outgoingResponse.locals.config;
@@ -19,24 +21,16 @@ module.exports = () => {
         }, BACKOFF);
       } else {
         outgoingResponse.status(504);
-        next();
+
+        next(
+          new ServiceTimeoutError(
+            `Apex retried your request ${MAX_RETRY_ATTEMPTS} additional time(s), but every request timed out.`,
+          ),
+        );
       }
     };
 
-    console.log('in retry');
     // Send outgoingRequest for the 1st time
-    // outgoingResponse.locals.sendOutgoingRequest().then(() => {
-    //   console.log('got incomingResponse');
-    //   next();
-    // });
-    // }, resendOutgoingRequest);
-    outgoingResponse.locals.sendOutgoingRequest().then(
-      () => {
-        console.log('resolved');
-      },
-      () => {
-        console.log('rejected');
-      },
-    );
+    outgoingResponse.locals.sendOutgoingRequest().then(next, resendOutgoingRequest);
   };
 };
