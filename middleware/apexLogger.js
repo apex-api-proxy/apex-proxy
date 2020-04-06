@@ -1,6 +1,7 @@
 require('dotenv').config();
 const node_ssh = require('node-ssh');
 const pgp = require('pg-promise')();
+const timestamp = require('../helpers/timestamp');
 
 const ssh = new node_ssh();
 const db = pgp({
