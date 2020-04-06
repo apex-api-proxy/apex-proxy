@@ -63,17 +63,31 @@ const sendAllLogsToDb = () => {
   };
 };
 
-const sendLog = (trace_id, headers, body = null, status = null) => {
+const sendLog = ({
+  correlationId,
+  method = null,
+  host = null,
+  port = null,
+  path = null,
+  statusCode = null,
+  headers,
+  body = null,
+} = {}) => {
   const formattedLogObject = {
-    trace_id: trace_id,
-    headers: headers,
-    body: body,
-    status_code: status,
+    correlationId,
+    method,
+    host,
+    port,
+    path,
+    statusCode,
+    headers,
+    body,
   };
 
   return db
     .any(
-      'INSERT INTO apex_log_kelvin VALUES (NOW(), $<trace_id>, $<headers>, $<body>, $<status_code>);',
+      'INSERT INTO apex_logs (timestamp, correlation_id, method, host, port, path, status_code, headers, body) ' +
+        'VALUES (NOW(), $<correlationId>, $<method>, $<host>, $<port>, $<path>, $<statusCode>, $<headers>, $<body>);',
       formattedLogObject,
     )
     .then((_) => {

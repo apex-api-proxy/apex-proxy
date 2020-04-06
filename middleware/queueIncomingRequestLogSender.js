@@ -1,14 +1,20 @@
 const querystring = require('querystring');
 const { sendLog } = require('./apexLogger');
 
+const PORT = process.env.PORT;
+
 const incomingRequestLogSender = (incomingRequest, outgoingResponse) => {
-  const incomingRequestPathWithQuery =
-    incomingRequest.path + '?' + querystring.stringify(incomingRequest.query);
+  const queryParams = incomingRequest.query;
+  let incomingRequestPath = incomingRequest.path;
+
+  if (Object.keys(queryParams).length > 0) {
+    incomingRequestPath = incomingRequestPath + '?' + querystring.stringify(queryParams);
+  }
 
   const method = incomingRequest.method;
   const host = incomingRequest.headers['host'];
-  const port = 443;
-  const path = incomingRequestPathWithQuery;
+  const port = PORT;
+  const path = incomingRequestPath;
   const headers = incomingRequest.headers;
   const body = incomingRequest.body;
   const correlationId = headers['X-Apex-Correlation-ID'];
@@ -17,7 +23,7 @@ const incomingRequestLogSender = (incomingRequest, outgoingResponse) => {
     let result;
 
     await outgoingResponse.locals.connectToLogsDb.then(() => {
-      result = sendLog(correlationId, headers, body).then(() => {
+      result = sendLog({ correlationId, method, host, port, path, headers, body }).then(() => {
         console.log('just logged incomingRequest above');
       });
     });
@@ -30,9 +36,7 @@ module.exports = () => {
   return (incomingRequest, outgoingResponse, next) => {
     const logSendersQueue = outgoingResponse.locals.logSendersQueue;
 
-    logSendersQueue.enqueue(
-      incomingRequestLogSender(incomingRequest, outgoingResponse),
-    );
+    logSendersQueue.enqueue(incomingRequestLogSender(incomingRequest, outgoingResponse));
 
     next();
   };

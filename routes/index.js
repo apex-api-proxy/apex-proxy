@@ -1,30 +1,34 @@
 const express = require('express');
-// const config = require('../middleware/config');
+
 const {
-  logsDbConnector,
-  sendAllLogsToDb,
-} = require('../middleware/apexLogger');
+  configStoreConnector,
+  configFetcher,
+  respondingServiceDiscovery,
+} = require('../middleware/configStore');
+
+const { logsDbConnector, sendAllLogsToDb } = require('../middleware/apexLogger');
 const queueIncomingRequestLogSender = require('../middleware/queueIncomingRequestLogSender');
 const queueOutgoingResponseLogSender = require('../middleware/queueOutgoingResponseLogSender');
 const basicAuthenticator = require('../middleware/basicAuthenticator');
 const proxy = require('../middleware/proxy');
 const retry = require('../middleware/retry');
-const authErrorHandler = require('../middleware/authErrorHandler');
+const customErrorsHandler = require('../middleware/customErrorsHandler');
 const { responseTracer } = require('../middleware/tracer');
-
 const outgoingResponseSender = require('../middleware/outgoingResponseSender');
 
 const router = express.Router();
 
 router.get(
   '/*',
-  // config(),
   logsDbConnector(),
   queueIncomingRequestLogSender(),
+  configStoreConnector(),
   basicAuthenticator(),
+  respondingServiceDiscovery(),
+  configFetcher(),
   proxy(),
   retry(),
-  authErrorHandler(),
+  customErrorsHandler(),
   responseTracer(),
   queueOutgoingResponseLogSender(),
   sendAllLogsToDb(),

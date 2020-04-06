@@ -1,18 +1,11 @@
-const fs = require('fs');
-const yaml = require('js-yaml');
+const ServiceTimeoutError = require('../helpers/ServiceTimeoutError');
 
 module.exports = () => {
   return (incomingRequest, outgoingResponse, next) => {
-    let config;
+    const config = outgoingResponse.locals.config;
 
-    if (res.locals.config) {
-      config = res.locals.config;
-    } else {
-      next();
-    }
-
-    const MAX_RETRY_ATTEMPTS = config['max retry attempts'];
-    const BACKOFF = config['backoff'];
+    const MAX_RETRY_ATTEMPTS = Number(config['max-retry-attempts']);
+    const BACKOFF = Number(config['backoff']);
 
     let retriesCount = 0;
 
@@ -28,12 +21,16 @@ module.exports = () => {
         }, BACKOFF);
       } else {
         outgoingResponse.status(504);
-        next();
+
+        next(
+          new ServiceTimeoutError(
+            `Apex retried your request ${MAX_RETRY_ATTEMPTS} additional time(s), but every request timed out.`,
+          ),
+        );
       }
     };
 
-    outgoingResponse.locals
-      .sendOutgoingRequest()
-      .then(next, resendOutgoingRequest);
+    // Send outgoingRequest for the 1st time
+    outgoingResponse.locals.sendOutgoingRequest().then(next, resendOutgoingRequest);
   };
 };

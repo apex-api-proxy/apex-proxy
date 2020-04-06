@@ -34,25 +34,19 @@ passport.use(
 
 module.exports = () => {
   return (incomingRequest, outgoingResponse, next) => {
-    passport.authenticate(
-      'bearer',
-      { session: false },
-      (err, service, info) => {
-        if (err) {
-          outgoingResponse.status(500);
+    passport.authenticate('bearer', { session: false }, (err, service, info) => {
+      if (err) {
+        outgoingResponse.status(500);
 
-          next(err);
-        }
+        next(err);
+      }
 
-        if (!service) {
-          outgoingResponse.status(403);
-          next(
-            new Error('Apex could not authenticate the supplied Bearer token.'),
-          );
-        }
+      if (!service) {
+        outgoingResponse.status(403);
+        next(new Error('Apex could not authenticate the supplied Bearer token.'));
+      }
 
-        next();
-      },
-    )(incomingRequest, outgoingResponse, next);
+      next();
+    })(incomingRequest, outgoingResponse, next);
   };
 };
