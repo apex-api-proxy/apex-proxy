@@ -3,6 +3,22 @@ const { sendLog } = require('./apexLogger');
 
 const PORT = process.env.PORT;
 
+const scrubApexAuthorizationHeader = (headers) => {
+  const authorizationHeaderName = getApexAuthorizationHeaderName(headers);
+
+  return { ...headers, [authorizationHeaderName]: '[scrubbed]' };
+};
+
+const getApexAuthorizationHeaderName = (headers) => {
+  for (const headerName in headers) {
+    if (headerName.toLowerCase() === 'x-apex-authorization') {
+      // Return early, assuming there's exactly 1 header whose name
+      // matches 'x-apex-authorization'
+      return headerName;
+    }
+  }
+};
+
 const incomingRequestLogSender = (incomingRequest, outgoingResponse) => {
   const queryParams = incomingRequest.query;
   let incomingRequestPath = incomingRequest.path;
@@ -15,7 +31,7 @@ const incomingRequestLogSender = (incomingRequest, outgoingResponse) => {
   const host = incomingRequest.headers['host'];
   const port = PORT;
   const path = incomingRequestPath;
-  const headers = incomingRequest.headers;
+  const headers = scrubApexAuthorizationHeader(incomingRequest.headers);
   const body = incomingRequest.body;
   const correlationId = headers['X-Apex-Correlation-ID'];
 

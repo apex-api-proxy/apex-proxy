@@ -70,7 +70,7 @@ const outgoingRequestLogSender = (incomingRequest, outgoingRequest, outgoingResp
   const path = outgoingRequest.path;
   const headers = generateOutgoingRequestHeaders(incomingRequest, outgoingResponse);
   const body = incomingRequest.body;
-  const correlationId = incomingRequest.headers['X-Apex-Correlation-ID'];
+  const correlationId = outgoingResponse.locals.apexCorrelationId;
 
   return () => {
     return sendLog({ correlationId, method, host, port, path, headers, body }).then(() => {

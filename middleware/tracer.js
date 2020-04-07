@@ -11,7 +11,7 @@ const addApexCorrelationIdToRequest = (headers) => {
     return [{ ...headers, [APEX_CORRELATION_ID_HEADER_NAME]: correlationId }, correlationId];
   }
 
-  const formattedHeaders = formatCorrelationIdHeaderName(headers, correlationIdHeaderName);
+  const formattedHeaders = capitalizeCorrelationIdHeaderName(headers, correlationIdHeaderName);
 
   // If incoming request has an empty correlation ID header
   if (!correlationId) {
@@ -28,7 +28,7 @@ const addApexCorrelationIdToRequest = (headers) => {
 };
 
 const addApexCorrelationIdToResponse = (headers, requestCorrelationId) => {
-  let [correlationIdHeaderName, incomingResponseCorrelationId] = getApexCorrelationIdHeader(
+  const [correlationIdHeaderName, incomingResponseCorrelationId] = getApexCorrelationIdHeader(
     headers,
   );
 
@@ -40,7 +40,7 @@ const addApexCorrelationIdToResponse = (headers, requestCorrelationId) => {
     };
   }
 
-  const formattedHeaders = formatCorrelationIdHeaderName(headers, correlationIdHeaderName);
+  const formattedHeaders = capitalizeCorrelationIdHeaderName(headers, correlationIdHeaderName);
 
   // If incoming response's correlation ID header value doesn't match
   // that of the outgoing request's correlation ID
@@ -54,12 +54,12 @@ const addApexCorrelationIdToResponse = (headers, requestCorrelationId) => {
   return formattedHeaders;
 };
 
-// Find name and value of header whose name matches
-// 'X-Apex-Correlation-ID' when ignoring case
+// Find name and value of header whose name matches 'X-Apex-Correlation-ID'
+// when ignoring case
 const getApexCorrelationIdHeader = (headers) => {
   for (const h in headers) {
     if (h.toLowerCase() === 'x-apex-correlation-id') {
-      // Return early, assuming there's at most 1 header matching
+      // Return early, assuming there's at most 1 header whose name matches
       // 'x-apex-correlation-id'
       return [h, headers[h]];
     }
@@ -69,12 +69,13 @@ const getApexCorrelationIdHeader = (headers) => {
 };
 
 // Ensure header name matches 'X-Apex-Correlation-Id' exactly, including case
-const formatCorrelationIdHeaderName = (headers, unformattedHeaderName) => {
+// All incomingRequest header names are downcased by Express
+const capitalizeCorrelationIdHeaderName = (headers, unformattedHeaderName) => {
   if (unformattedHeaderName === APEX_CORRELATION_ID_HEADER_NAME) {
     return headers;
   }
 
-  let result = { ...headers };
+  const result = { ...headers };
 
   result[APEX_CORRELATION_ID_HEADER_NAME] = result[unformattedHeaderName];
 
@@ -86,13 +87,11 @@ const formatCorrelationIdHeaderName = (headers, unformattedHeaderName) => {
 module.exports = {
   requestTracer: () => {
     return (incomingRequest, outgoingResponse, next) => {
-      let headers;
-      let apexCorrelationId;
-
-      [headers, apexCorrelationId] = addApexCorrelationIdToRequest(incomingRequest.headers);
+      const [headers, apexCorrelationId] = addApexCorrelationIdToRequest(incomingRequest.headers);
 
       incomingRequest.headers = headers;
 
+      // Save correlation ID so it remains available later for responseTracer
       outgoingResponse.locals.apexCorrelationId = apexCorrelationId;
 
       next();
