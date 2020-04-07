@@ -120,35 +120,3 @@ module.exports = {
   respondingServiceDiscovery,
   configFetcher,
 };
-
-({
-  'service-credentials': {
-    postman: '8932407sfdl',
-    dagpay: '98w34lssdf',
-  },
-
-  'service-hosts': {
-    postman: '42.56.144.53',
-    dagpay: '53.55.63.153',
-  },
-
-  // global defaults
-  'default:default': {
-    timeout: 10000,
-    'max-retry-attempts': 4,
-    backoff: 3500,
-  },
-
-  // service overrides
-  'postman:dagpay': {
-    timeout: 10000,
-    'max-retry-attempts': 4,
-    backoff: 3500,
-  },
-
-  'dagpay:postman': {
-    timeout: 10000,
-    'max-retry-attempts': 4,
-    backoff: 3500,
-  },
-});

@@ -44,6 +44,7 @@ const logsDbConnector = () => {
         })
         .then(resolve)
         .catch((e) => {
+          console.log('An error occurred while connecting to logs database:');
           console.log(e);
         });
     });
@@ -95,7 +96,8 @@ const sendLog = ({
       console.log('database write succeeded.');
     })
     .catch((e) => {
-      console.log('An error occurred while writing to db: ', e);
+      console.log('An error occurred while writing to db:');
+      console.log(e);
     });
 };
 
