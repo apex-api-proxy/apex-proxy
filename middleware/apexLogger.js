@@ -6,7 +6,7 @@ const pgp = require('pg-promise')();
 const ssh = new node_ssh();
 const db = pgp({
   host: `${process.env.TIMESCALE_IP}`,
-  port: `${process.env.POSTGRESQL_PORT}`,
+  port: process.env.POSTGRESQL_PORT,
   database: 'postgres',
   user: `${process.env.DB_USER}`,
   password: `${process.env.DB_PASSWORD}`,

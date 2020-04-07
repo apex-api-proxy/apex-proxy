@@ -3,7 +3,7 @@ const querystring = require('querystring');
 const { sendLog } = require('./apexLogger');
 const rawBody = require('raw-body');
 
-const OUTGOING_REQUEST_PORT = 443;
+const OUTGOING_REQUEST_PORT = process.env.HTTPS_PORT;
 
 const removeApexAuthorizationHeader = (headers) => {
   const {
