@@ -138,9 +138,13 @@ module.exports = () => {
         });
 
         outgoingRequest.on('error', (error) => {
-          console.log('error while proxy was sending outgoingRequest:');
-          console.log(error);
-          console.log('\n');
+          // Already handling aborting outgoingRequest, no need to also log
+          // this error to console
+          if (error.message !== 'socket hang up') {
+            console.log('error while proxy was sending outgoingRequest:');
+            console.log(error);
+            console.log('\n');
+          }
         });
 
         getIncomingRequestRawBody.then((rawBody) => {
@@ -155,6 +159,7 @@ module.exports = () => {
           outgoingRequest.abort();
 
           console.log(`Timed out after ${TIMEOUT}ms\n`);
+          console.log('---------------------------\n');
 
           reject(outgoingResponse.locals.sendOutgoingRequest);
         }, TIMEOUT);

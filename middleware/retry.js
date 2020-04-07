@@ -11,8 +11,10 @@ module.exports = () => {
 
     const resendOutgoingRequest = (sendOutgoingRequest) => {
       if (retriesCount < MAX_RETRY_ATTEMPTS) {
+        console.log('Backing off...');
+
         setTimeout(() => {
-          console.log(`Backed off for ${BACKOFF}ms`);
+          console.log(`Backed off for ${BACKOFF}ms\n`);
 
           sendOutgoingRequest().then(next, resendOutgoingRequest);
 
