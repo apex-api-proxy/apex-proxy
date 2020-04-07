@@ -6,8 +6,8 @@
   },
   "private": true,
   "scripts": {
-    "startOriginal": "node ./bin/www",
-    "start": "nodemon ./bin/www"
+    "start": "node ./bin/www",
+    "start-with-nodemon": "nodemon ./bin/www"
   },
   "dependencies": {
     "cookie-parser": "~1.4.4",

@@ -1,12 +1,12 @@
 require('dotenv').config();
 const node_ssh = require('node-ssh');
 const pgp = require('pg-promise')();
-const timestamp = require('../helpers/timestamp');
+// const timestamp = require('../helpers/timestamp');
 
 const ssh = new node_ssh();
 const db = pgp({
   host: `${process.env.TIMESCALE_IP}`,
-  port: 5432,
+  port: `${process.env.POSTGRESQL_PORT}`,
   database: 'postgres',
   user: `${process.env.DB_USER}`,
   password: `${process.env.DB_PASSWORD}`,
