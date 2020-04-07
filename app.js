@@ -14,10 +14,6 @@ app.use(requestTracer());
 app.use(logger('dev'));
 // app.use(express.json());
 // app.use(express.urlencoded({ extended: false }));
-
-// May not support all request bodies, maximum size of
-// request body defaults to 100kb
-app.use(bodyParser.raw({ type: '*/*' }));
 app.use(cookieParser());
 // app.use(express.static(path.join(__dirname, 'public')));
 

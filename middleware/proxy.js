@@ -1,6 +1,7 @@
 const https = require('https');
 const querystring = require('querystring');
 const { sendLog } = require('./apexLogger');
+const rawBody = require('raw-body');
 
 const OUTGOING_REQUEST_PORT = 443;
 
@@ -93,6 +94,8 @@ const incomingResponseLogSender = (incomingResponse, incomingResponseBody, outgo
 
 module.exports = () => {
   return (incomingRequest, outgoingResponse, next) => {
+    const getIncomingRequestRawBody = rawBody(incomingRequest);
+
     const config = outgoingResponse.locals.config;
     const TIMEOUT = Number(config['timeout']);
     const outgoingRequestOptions = generateOutgoingRequestOptions(
@@ -140,9 +143,9 @@ module.exports = () => {
           console.log('\n');
         });
 
-        outgoingRequest.write(incomingRequest.body);
-
-        outgoingRequest.end();
+        getIncomingRequestRawBody.then((rawBody) => {
+          outgoingRequest.end(rawBody);
+        });
 
         logSendersQueue.enqueue(
           outgoingRequestLogSender(incomingRequest, outgoingRequest, outgoingResponse),
