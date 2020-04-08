@@ -38,10 +38,12 @@ const incomingRequestLogSender = (incomingRequest, outgoingResponse) => {
   return async () => {
     let result;
 
-    await outgoingResponse.locals.connectToLogsDb.then(() => {
-      result = sendLog({ correlationId, method, host, port, path, headers, body }).then(() => {
-        console.log('just logged incomingRequest above');
-      });
+    await outgoingResponse.locals.connectToLogsDb.then((client) => {
+      result = sendLog({ client, correlationId, method, host, port, path, headers, body }).then(
+        () => {
+          console.log('just logged incomingRequest above');
+        },
+      );
     });
 
     return result;

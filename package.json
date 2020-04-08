@@ -19,7 +19,7 @@
     "node-ssh": "^8.0.0",
     "passport": "^0.4.1",
     "passport-http-bearer": "^1.0.1",
-    "pg-promise": "^10.4.4",
+    "pg": "^8.0.0",
     "querystring": "^0.2.0",
     "raw-body": "^2.4.1",
     "redis": "^3.0.2",

@@ -1,8 +1,14 @@
-FROM node:12.4-alpine
-RUN mkdir /app
-WORKDIR /app
-COPY package.json package.json
-RUN npm install && mv node_modules /node_modules
+FROM node:13.8.0
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+
+RUN npm install
+# RUN npm ci --only=production
+
 COPY . .
-LABEL maintainer="Apex Team"
-CMD npm start
+
+Expose 1989
+
+CMD [ "npm", "start" ]

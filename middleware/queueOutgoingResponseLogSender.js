@@ -7,8 +7,10 @@ const outgoingResponseLogSender = (outgoingResponse) => {
   const body = outgoingResponse.locals.body;
 
   return () => {
-    return sendLog({ correlationId, statusCode, headers, body }).then(() => {
-      console.log('just logged outgoingResponse above');
+    return outgoingResponse.locals.connectToLogsDb.then((client) => {
+      sendLog({ client, correlationId, statusCode, headers, body }).then(() => {
+        console.log('just logged outgoingResponse above');
+      });
     });
   };
 };

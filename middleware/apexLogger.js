@@ -1,16 +1,6 @@
 require('dotenv').config();
-const node_ssh = require('node-ssh');
-const pgp = require('pg-promise')();
+const { Pool } = require('pg');
 // const timestamp = require('../helpers/timestamp');
-
-const ssh = new node_ssh();
-const db = pgp({
-  host: `${process.env.TIMESCALE_IP}`,
-  port: process.env.POSTGRESQL_PORT,
-  database: 'postgres',
-  user: `${process.env.DB_USER}`,
-  password: `${process.env.DB_PASSWORD}`,
-});
 
 class LogSendersQueue {
   constructor() {
@@ -35,19 +25,16 @@ class LogSendersQueue {
 
 const logsDbConnector = () => {
   return (incomingRequest, outgoingResponse, next) => {
-    outgoingResponse.locals.connectToLogsDb = new Promise((resolve, reject) => {
-      ssh
-        .connect({
-          host: `${process.env.TIMESCALE_HOSTNAME}`,
-          username: `${process.env.SSH_USERNAME}`,
-          privateKey: `${process.env.SSH_KEY_LOCATION}`,
-        })
-        .then(resolve)
-        .catch((e) => {
-          console.log('An error occurred while connecting to logs database:');
-          console.log(e);
-        });
+    const pool = new Pool();
+
+    pool.on('error', (err, client) => {
+      console.log('An error occurred while connecting to logs database:');
+      console.log(err);
+      console.error('Unexpected error on idle client', err);
+      process.exit(-1);
     });
+
+    outgoingResponse.locals.connectToLogsDb = pool.connect();
 
     outgoingResponse.locals.logSendersQueue = new LogSendersQueue();
 
@@ -66,6 +53,7 @@ const sendAllLogsToDb = () => {
 };
 
 const sendLog = ({
+  client,
   correlationId,
   method = null,
   host = null,
@@ -75,29 +63,24 @@ const sendLog = ({
   headers,
   body = null,
 } = {}) => {
-  const formattedLogObject = {
-    correlationId,
-    method,
-    host,
-    port,
-    path,
-    statusCode,
-    headers,
-    body,
-  };
+  if (body && body.constructor === Buffer) {
+    body = body.toString('hex');
+  }
 
-  return db
-    .any(
+  const parameterValues = [correlationId, method, host, port, path, statusCode, headers, body];
+
+  return client
+    .query(
       'INSERT INTO apex_logs (timestamp, correlation_id, method, host, port, path, status_code, headers, body) ' +
-        'VALUES (NOW(), $<correlationId>, $<method>, $<host>, $<port>, $<path>, $<statusCode>, $<headers>, $<body>);',
-      formattedLogObject,
+        'VALUES (NOW(), $1, $2, $3, $4, $5, $6, $7, $8);',
+      parameterValues,
     )
-    .then((_) => {
+    .then((result) => {
       console.log('database write succeeded.');
     })
-    .catch((e) => {
-      console.log('An error occurred while writing to db:');
-      console.log(e);
+    .catch((err) => {
+      console.log('An error occurred while writing to the logs database:');
+      console.log(err);
     });
 };
 
