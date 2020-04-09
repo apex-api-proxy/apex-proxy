@@ -3,7 +3,7 @@ const redis = require('redis');
 const ServiceDiscoveryError = require('../helpers/ServiceDiscoveryError');
 
 const PORT = process.env.REDIS_PORT;
-const HOST = process.env.REDIS_IP;
+const HOST = process.env.REDIS_HOST;
 
 const configStoreConnector = () => {
   return (outgoingRequest, outgoingResponse, next) => {
