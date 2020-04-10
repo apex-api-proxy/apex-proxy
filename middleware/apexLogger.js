@@ -15,10 +15,15 @@ class LogSendersQueue {
     return this.queue.shift();
   }
 
-  sendAllLogs = () => {
+  sendAllLogs = (client) => {
     if (this.queue.length > 0) {
       const logSender = this.dequeue();
-      logSender().then(this.sendAllLogs);
+
+      logSender().then(() => {
+        this.sendAllLogs(client);
+      });
+    } else {
+      client.release();
     }
   };
 }
@@ -46,7 +51,9 @@ const sendAllLogsToDb = () => {
   return (incomingRequest, outgoingResponse, next) => {
     const logSendersQueue = outgoingResponse.locals.logSendersQueue;
 
-    logSendersQueue.sendAllLogs();
+    outgoingResponse.locals.connectToLogsDb.then((client) => {
+      logSendersQueue.sendAllLogs(client);
+    });
 
     next();
   };

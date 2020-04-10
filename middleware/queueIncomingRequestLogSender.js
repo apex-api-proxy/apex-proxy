@@ -36,17 +36,17 @@ const incomingRequestLogSender = (incomingRequest, outgoingResponse) => {
   const correlationId = headers['X-Apex-Correlation-ID'];
 
   return async () => {
-    let result;
+    let sentLog;
 
     await outgoingResponse.locals.connectToLogsDb.then((client) => {
-      result = sendLog({ client, correlationId, method, host, port, path, headers, body }).then(
+      sentLog = sendLog({ client, correlationId, method, host, port, path, headers, body }).then(
         () => {
           console.log('just logged incomingRequest above');
         },
       );
     });
 
-    return result;
+    return sentLog;
   };
 };
 
