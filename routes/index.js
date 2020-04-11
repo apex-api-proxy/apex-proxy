@@ -18,7 +18,7 @@ const outgoingResponseSender = require('../middleware/outgoingResponseSender');
 
 const router = express.Router();
 
-router.get(
+router.all(
   '/*',
   logsDbConnector(),
   queueIncomingRequestLogSender(),
