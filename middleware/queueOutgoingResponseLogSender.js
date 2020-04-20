@@ -6,12 +6,16 @@ const outgoingResponseLogSender = (outgoingResponse) => {
   const headers = outgoingResponse.getHeaders();
   const body = outgoingResponse.locals.body;
 
-  return () => {
-    return outgoingResponse.locals.connectToLogsDb.then((client) => {
-      sendLog({ client, correlationId, statusCode, headers, body }).then(() => {
+  return async () => {
+    let sentLog;
+
+    await outgoingResponse.locals.connectToLogsDb.then((client) => {
+      sentLog = sendLog({ client, correlationId, statusCode, headers, body }).then(() => {
         console.log('just logged outgoingResponse above');
       });
     });
+
+    return sentLog;
   };
 };
 

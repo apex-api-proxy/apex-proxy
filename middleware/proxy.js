@@ -72,12 +72,18 @@ const outgoingRequestLogSender = (incomingRequest, outgoingRequest, outgoingResp
   const body = incomingRequest.body;
   const correlationId = outgoingResponse.locals.apexCorrelationId;
 
-  return () => {
-    return outgoingResponse.locals.connectToLogsDb.then((client) => {
-      sendLog({ client, correlationId, method, host, port, path, headers, body }).then(() => {
-        console.log('just logged outgoingRequest above');
-      });
+  return async () => {
+    let sentLog;
+
+    await outgoingResponse.locals.connectToLogsDb.then((client) => {
+      sentLog = sendLog({ client, correlationId, method, host, port, path, headers, body }).then(
+        () => {
+          console.log('just logged outgoingRequest above');
+        },
+      );
     });
+
+    return sentLog;
   };
 };
 
@@ -87,12 +93,16 @@ const incomingResponseLogSender = (incomingResponse, incomingResponseBody, outgo
   const headers = incomingResponse.headers;
   const body = incomingResponseBody;
 
-  return () => {
-    return outgoingResponse.locals.connectToLogsDb.then((client) => {
-      return sendLog({ client, correlationId, headers, body, statusCode }).then(() => {
+  return async () => {
+    let sentLog;
+
+    await outgoingResponse.locals.connectToLogsDb.then((client) => {
+      sentLog = sendLog({ client, correlationId, headers, body, statusCode }).then(() => {
         console.log('just logged incomingResponse above');
       });
     });
+
+    return sentLog;
   };
 };
 
