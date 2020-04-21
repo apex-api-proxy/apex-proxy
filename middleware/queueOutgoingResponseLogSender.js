@@ -1,6 +1,8 @@
 const { sendLog } = require('./apexLogger');
+const getTimestamp = require('../helpers/timestamp');
 
 const outgoingResponseLogSender = (outgoingResponse) => {
+  const timestamp = getTimestamp();
   const correlationId = outgoingResponse.locals.apexCorrelationId;
   const statusCode = outgoingResponse.statusCode;
   const headers = outgoingResponse.getHeaders();
@@ -10,7 +12,7 @@ const outgoingResponseLogSender = (outgoingResponse) => {
     let sentLog;
 
     await outgoingResponse.locals.connectToLogsDb.then((client) => {
-      sentLog = sendLog({ client, correlationId, statusCode, headers, body }).then(() => {
+      sentLog = sendLog({ timestamp, client, correlationId, statusCode, headers, body }).then(() => {
         console.log('just logged outgoingResponse above');
       });
     });

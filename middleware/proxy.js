@@ -2,6 +2,7 @@ const https = require('https');
 const querystring = require('querystring');
 const { sendLog } = require('./apexLogger');
 const rawBody = require('raw-body');
+const getTimestamp = require('../helpers/timestamp');
 
 const OUTGOING_REQUEST_PORT = process.env.HTTPS_PORT;
 
@@ -64,6 +65,7 @@ const buildOutgoingResponse = (incomingResponse, incomingResponseBody, outgoingR
 };
 
 const outgoingRequestLogSender = (incomingRequest, outgoingRequest, outgoingResponse) => {
+  const timestamp = getTimestamp();
   const method = outgoingRequest.method;
   const host = outgoingResponse.locals.respondingServiceHost;
   const port = OUTGOING_REQUEST_PORT;
@@ -76,7 +78,7 @@ const outgoingRequestLogSender = (incomingRequest, outgoingRequest, outgoingResp
     let sentLog;
 
     await outgoingResponse.locals.connectToLogsDb.then((client) => {
-      sentLog = sendLog({ client, correlationId, method, host, port, path, headers, body }).then(
+      sentLog = sendLog({ timestamp, client, correlationId, method, host, port, path, headers, body }).then(
         () => {
           console.log('just logged outgoingRequest above');
         },
@@ -88,6 +90,7 @@ const outgoingRequestLogSender = (incomingRequest, outgoingRequest, outgoingResp
 };
 
 const incomingResponseLogSender = (incomingResponse, incomingResponseBody, outgoingResponse) => {
+  const timestamp = getTimestamp();
   const correlationId = outgoingResponse.locals.apexCorrelationId;
   const statusCode = incomingResponse.statusCode;
   const headers = incomingResponse.headers;
@@ -97,7 +100,7 @@ const incomingResponseLogSender = (incomingResponse, incomingResponseBody, outgo
     let sentLog;
 
     await outgoingResponse.locals.connectToLogsDb.then((client) => {
-      sentLog = sendLog({ client, correlationId, headers, body, statusCode }).then(() => {
+      sentLog = sendLog({ timestamp, client, correlationId, headers, body, statusCode }).then(() => {
         console.log('just logged incomingResponse above');
       });
     });

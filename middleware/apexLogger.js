@@ -60,6 +60,7 @@ const sendAllLogsToDb = () => {
 };
 
 const sendLog = ({
+  timestamp,
   client,
   correlationId,
   method = null,
@@ -74,12 +75,12 @@ const sendLog = ({
     body = body.toString('hex');
   }
 
-  const parameterValues = [correlationId, method, host, port, path, statusCode, headers, body];
+  const parameterValues = [timestamp, correlationId, method, host, port, path, statusCode, headers, body];
 
   return client
     .query(
       'INSERT INTO apex_logs (timestamp, correlation_id, method, host, port, path, status_code, headers, body) ' +
-        'VALUES (NOW(), $1, $2, $3, $4, $5, $6, $7, $8);',
+        'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);',
       parameterValues,
     )
     .then((result) => {
