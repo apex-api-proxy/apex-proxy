@@ -1,5 +1,6 @@
 const querystring = require('querystring');
 const { sendLog } = require('./apexLogger');
+const getTimestamp = require('../helpers/timestamp');
 
 const PORT = process.env.PORT;
 
@@ -27,6 +28,7 @@ const incomingRequestLogSender = (incomingRequest, outgoingResponse) => {
     incomingRequestPath = incomingRequestPath + '?' + querystring.stringify(queryParams);
   }
 
+  const timestamp = getTimestamp();
   const method = incomingRequest.method;
   const host = incomingRequest.headers['host'];
   const port = PORT;
@@ -39,7 +41,7 @@ const incomingRequestLogSender = (incomingRequest, outgoingResponse) => {
     let sentLog;
 
     await outgoingResponse.locals.connectToLogsDb.then((client) => {
-      sentLog = sendLog({ client, correlationId, method, host, port, path, headers, body }).then(
+      sentLog = sendLog({ timestamp, client, correlationId, method, host, port, path, headers, body }).then(
         () => {
           console.log('just logged incomingRequest above');
         },
