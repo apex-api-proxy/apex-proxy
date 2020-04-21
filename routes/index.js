@@ -3,7 +3,7 @@ const express = require('express');
 const {
   configStoreConnector,
   configFetcher,
-  respondingServiceDiscovery,
+  respondingRouter,
 } = require('../middleware/configStore');
 
 const { logsDbConnector, sendAllLogsToDb } = require('../middleware/apexLogger');
@@ -24,7 +24,7 @@ router.all(
   queueIncomingRequestLogSender(),
   configStoreConnector(),
   basicAuthenticator(),
-  respondingServiceDiscovery(),
+  respondingRouter(),
   configFetcher(),
   proxy(),
   retry(),

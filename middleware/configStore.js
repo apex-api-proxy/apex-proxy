@@ -1,6 +1,6 @@
 const redis = require('redis');
 
-const ServiceDiscoveryError = require('../helpers/ServiceDiscoveryError');
+const RouterError = require('../helpers/RouterError');
 
 const PORT = process.env.REDIS_PORT;
 const HOST = process.env.REDIS_HOST;
@@ -49,23 +49,23 @@ const handleNoRespondingServiceName = (outgoingResponse, next) => {
   outgoingResponse.status(400);
 
   next(
-    new ServiceDiscoveryError(
+    new RouterError(
       "Request must provide the responding service's name in the 'X-Apex-Responding-Service-Name' header.",
     ),
   );
 };
 
-const handleRespondingServiceDiscoveryFailure = (outgoingResponse, next) => {
+const handleRespondingRouterFailure = (outgoingResponse, next) => {
   outgoingResponse.status(404);
 
   next(
-    new ServiceDiscoveryError(
+    new RouterError(
       "A responding service could not be found with the service name provided in the 'X-Apex-Responding-Service-Name' header.",
     ),
   );
 };
 
-const respondingServiceDiscovery = () => {
+const respondingRouter = () => {
   return (incomingRequest, outgoingResponse, next) => {
     outgoingResponse.locals.connectToConfigStore.then((client) => {
       const respondingServiceName = incomingRequest.headers['x-apex-responding-service-name'];
@@ -79,7 +79,7 @@ const respondingServiceDiscovery = () => {
         // Currently not handling `err`, but could add logic for this later
 
         if (respondingServiceHost === null) {
-          handleRespondingServiceDiscoveryFailure(outgoingResponse, next);
+          handleRespondingRouterFailure(outgoingResponse, next);
           return;
         }
 
@@ -117,6 +117,6 @@ const configFetcher = () => {
 module.exports = {
   configStoreConnector,
   authenticateService,
-  respondingServiceDiscovery,
+  respondingRouter,
   configFetcher,
 };
