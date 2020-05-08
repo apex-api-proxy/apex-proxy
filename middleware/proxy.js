@@ -4,7 +4,8 @@ const { sendLog } = require('./apexLogger');
 const rawBody = require('raw-body');
 const getTimestamp = require('../helpers/timestamp');
 
-const OUTGOING_REQUEST_PORT = process.env.HTTPS_PORT;
+// const OUTGOING_REQUEST_PORT = process.env.HTTPS_PORT;
+const OUTGOING_REQUEST_PORT = 3000;
 
 const removeApexAuthorizationHeader = (headers) => {
   const {
@@ -78,11 +79,19 @@ const outgoingRequestLogSender = (incomingRequest, outgoingRequest, outgoingResp
     let sentLog;
 
     await outgoingResponse.locals.connectToLogsDb.then((client) => {
-      sentLog = sendLog({ timestamp, client, correlationId, method, host, port, path, headers, body }).then(
-        () => {
-          console.log('just logged outgoingRequest above');
-        },
-      );
+      sentLog = sendLog({
+        timestamp,
+        client,
+        correlationId,
+        method,
+        host,
+        port,
+        path,
+        headers,
+        body,
+      }).then(() => {
+        console.log('just logged outgoingRequest above');
+      });
     });
 
     return sentLog;
@@ -100,9 +109,11 @@ const incomingResponseLogSender = (incomingResponse, incomingResponseBody, outgo
     let sentLog;
 
     await outgoingResponse.locals.connectToLogsDb.then((client) => {
-      sentLog = sendLog({ timestamp, client, correlationId, headers, body, statusCode }).then(() => {
-        console.log('just logged incomingResponse above');
-      });
+      sentLog = sendLog({ timestamp, client, correlationId, headers, body, statusCode }).then(
+        () => {
+          console.log('just logged incomingResponse above');
+        },
+      );
     });
 
     return sentLog;
