@@ -55,7 +55,7 @@ const handleNoRespondingServiceName = (outgoingResponse, next) => {
   );
 };
 
-const handleRespondingRouterFailure = (outgoingResponse, next) => {
+const handleRoutingFailure = (outgoingResponse, next) => {
   outgoingResponse.status(404);
 
   next(
@@ -65,7 +65,7 @@ const handleRespondingRouterFailure = (outgoingResponse, next) => {
   );
 };
 
-const respondingRouter = () => {
+const respondingServiceRouter = () => {
   return (incomingRequest, outgoingResponse, next) => {
     outgoingResponse.locals.connectToConfigStore.then((client) => {
       const respondingServiceName = incomingRequest.headers['x-apex-responding-service-name'];
@@ -79,7 +79,7 @@ const respondingRouter = () => {
         // Currently not handling `err`, but could add logic for this later
 
         if (respondingServiceHost === null) {
-          handleRespondingRouterFailure(outgoingResponse, next);
+          handleRoutingFailure(outgoingResponse, next);
           return;
         }
 
@@ -117,6 +117,6 @@ const configFetcher = () => {
 module.exports = {
   configStoreConnector,
   authenticateService,
-  respondingRouter,
+  respondingServiceRouter,
   configFetcher,
 };
