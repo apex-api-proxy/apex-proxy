@@ -1,4 +1,4 @@
-const https = require('https');
+const http = require('http');
 const querystring = require('querystring');
 const { sendLog } = require('./apexLogger');
 const rawBody = require('raw-body');
@@ -136,7 +136,7 @@ module.exports = () => {
         const logSendersQueue = outgoingResponse.locals.logSendersQueue;
         let timeoutId;
 
-        const outgoingRequest = https.request(outgoingRequestOptions, (incomingResponse) => {
+        const outgoingRequest = http.request(outgoingRequestOptions, (incomingResponse) => {
           const incomingResponseChunks = [];
           let incomingResponseBody;
 
