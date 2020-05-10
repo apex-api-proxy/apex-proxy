@@ -22,13 +22,11 @@ class LogSendersQueue {
       logSender().then(() => {
         this.sendAllLogs(client);
       });
-      // } else {
-      //   client.release();
     }
   };
 }
 
-const logsDbConnector = (client) => {
+const assignLogsDbClient = (client) => {
   return (incomingRequest, outgoingResponse, next) => {
     // const pool = new Pool();
 
@@ -48,7 +46,7 @@ const logsDbConnector = (client) => {
   };
 };
 
-const logsDbClient = () => {
+const createLogsDbClient = () => {
   const pool = new Pool();
 
   pool.on('error', (err, client) => {
@@ -117,8 +115,8 @@ const sendLog = ({
 };
 
 module.exports = {
-  logsDbClient,
-  logsDbConnector,
+  createLogsDbClient,
+  assignLogsDbClient,
   sendLog,
   sendAllLogsToDb,
 };

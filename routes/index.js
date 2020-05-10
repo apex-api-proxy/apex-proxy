@@ -6,7 +6,7 @@ const {
   respondingServiceRouter,
 } = require('../middleware/configStore');
 
-const { logsDbConnector, sendAllLogsToDb } = require('../middleware/apexLogger');
+const { sendAllLogsToDb } = require('../middleware/apexLogger');
 const queueIncomingRequestLogSender = require('../middleware/queueIncomingRequestLogSender');
 const queueOutgoingResponseLogSender = require('../middleware/queueOutgoingResponseLogSender');
 const basicAuthenticator = require('../middleware/basicAuthenticator');
@@ -20,7 +20,6 @@ const router = express.Router();
 
 router.all(
   '/*',
-  // logsDbConnector(),
   queueIncomingRequestLogSender(),
   configStoreConnector(),
   basicAuthenticator(),
