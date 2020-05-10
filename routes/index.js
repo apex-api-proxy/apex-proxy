@@ -20,7 +20,7 @@ const router = express.Router();
 
 router.all(
   '/*',
-  logsDbConnector(),
+  // logsDbConnector(),
   queueIncomingRequestLogSender(),
   configStoreConnector(),
   basicAuthenticator(),

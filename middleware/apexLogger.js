@@ -22,29 +22,43 @@ class LogSendersQueue {
       logSender().then(() => {
         this.sendAllLogs(client);
       });
-    } else {
-      client.release();
+      // } else {
+      //   client.release();
     }
   };
 }
 
-const logsDbConnector = () => {
+const logsDbConnector = (client) => {
   return (incomingRequest, outgoingResponse, next) => {
-    const pool = new Pool();
+    // const pool = new Pool();
 
-    pool.on('error', (err, client) => {
-      console.log('An error occurred while connecting to logs database:');
-      console.log(err);
-      console.error('Unexpected error on idle client', err);
-      process.exit(-1);
-    });
+    // pool.on('error', (err, client) => {
+    //   console.log('An error occurred while connecting to logs database:');
+    //   console.log(err);
+    //   console.error('Unexpected error on idle client', err);
+    //   process.exit(-1);
+    // });
 
-    outgoingResponse.locals.connectToLogsDb = pool.connect();
+    // outgoingResponse.locals.connectToLogsDb = pool.connect();
+    outgoingResponse.locals.connectToLogsDb = client;
 
     outgoingResponse.locals.logSendersQueue = new LogSendersQueue();
 
     next();
   };
+};
+
+const logsDbClient = () => {
+  const pool = new Pool();
+
+  pool.on('error', (err, client) => {
+    console.log('An error occurred while connecting to logs database:');
+    console.log(err);
+    console.error('Unexpected error on idle client', err);
+    process.exit(-1);
+  });
+
+  return pool.connect();
 };
 
 const sendAllLogsToDb = () => {
@@ -75,7 +89,17 @@ const sendLog = ({
     body = body.toString('hex');
   }
 
-  const parameterValues = [timestamp, correlationId, method, host, port, path, statusCode, headers, body];
+  const parameterValues = [
+    timestamp,
+    correlationId,
+    method,
+    host,
+    port,
+    path,
+    statusCode,
+    headers,
+    body,
+  ];
 
   return client
     .query(
@@ -93,6 +117,7 @@ const sendLog = ({
 };
 
 module.exports = {
+  logsDbClient,
   logsDbConnector,
   sendLog,
   sendAllLogsToDb,
