@@ -1,6 +1,5 @@
 const http = require('http');
 const querystring = require('querystring');
-const { sendLog } = require('./apexLogger');
 const rawBody = require('raw-body');
 const getTimestamp = require('../helpers/timestamp');
 
@@ -65,58 +64,41 @@ const buildOutgoingResponse = (incomingResponse, incomingResponseBody, outgoingR
   outgoingResponse.locals.body = incomingResponseBody;
 };
 
-const outgoingRequestLogSender = (incomingRequest, outgoingRequest, outgoingResponse) => {
+const outgoingRequestLog = (incomingRequest, outgoingRequest, outgoingResponse) => {
   const timestamp = getTimestamp();
+  const correlation_id = outgoingResponse.locals.apexCorrelationId;
   const method = outgoingRequest.method;
   const host = outgoingResponse.locals.respondingServiceHost;
   const port = OUTGOING_REQUEST_PORT;
   const path = outgoingRequest.path;
   const headers = generateOutgoingRequestHeaders(incomingRequest, outgoingResponse);
   const body = incomingRequest.body;
-  const correlationId = outgoingResponse.locals.apexCorrelationId;
 
-  return async () => {
-    let sentLog;
-
-    await outgoingResponse.locals.connectToLogsDb.then((client) => {
-      sentLog = sendLog({
-        timestamp,
-        client,
-        correlationId,
-        method,
-        host,
-        port,
-        path,
-        headers,
-        body,
-      }).then(() => {
-        console.log('just logged outgoingRequest above');
-      });
-    });
-
-    return sentLog;
+  return {
+    timestamp,
+    correlation_id,
+    method,
+    host,
+    port,
+    path,
+    headers,
+    body,
   };
 };
 
-const incomingResponseLogSender = (incomingResponse, incomingResponseBody, outgoingResponse) => {
+const incomingResponseLog = (incomingResponse, incomingResponseBody, outgoingResponse) => {
   const timestamp = getTimestamp();
-  const correlationId = outgoingResponse.locals.apexCorrelationId;
-  const statusCode = incomingResponse.statusCode;
+  const correlation_id = outgoingResponse.locals.apexCorrelationId;
+  const status_code = incomingResponse.statusCode;
   const headers = incomingResponse.headers;
   const body = incomingResponseBody;
 
-  return async () => {
-    let sentLog;
-
-    await outgoingResponse.locals.connectToLogsDb.then((client) => {
-      sentLog = sendLog({ timestamp, client, correlationId, headers, body, statusCode }).then(
-        () => {
-          console.log('just logged incomingResponse above');
-        },
-      );
-    });
-
-    return sentLog;
+  return {
+    timestamp,
+    correlation_id,
+    status_code,
+    headers,
+    body,
   };
 };
 
@@ -133,7 +115,7 @@ module.exports = () => {
 
     outgoingResponse.locals.sendOutgoingRequest = () => {
       return new Promise((resolve, reject) => {
-        const logSendersQueue = outgoingResponse.locals.logSendersQueue;
+        const logsQueue = outgoingResponse.locals.logsQueue;
         let timeoutId;
 
         const outgoingRequest = http.request(outgoingRequestOptions, (incomingResponse) => {
@@ -154,8 +136,8 @@ module.exports = () => {
 
               incomingResponseBody = Buffer.concat(incomingResponseChunks);
 
-              logSendersQueue.enqueue(
-                incomingResponseLogSender(incomingResponse, incomingResponseBody, outgoingResponse),
+              logsQueue.enqueue(
+                incomingResponseLog(incomingResponse, incomingResponseBody, outgoingResponse),
               );
 
               buildOutgoingResponse(incomingResponse, incomingResponseBody, outgoingResponse);
@@ -179,9 +161,7 @@ module.exports = () => {
           outgoingRequest.end(rawBody);
         });
 
-        logSendersQueue.enqueue(
-          outgoingRequestLogSender(incomingRequest, outgoingRequest, outgoingResponse),
-        );
+        logsQueue.enqueue(outgoingRequestLog(incomingRequest, outgoingRequest, outgoingResponse));
 
         timeoutId = setTimeout(() => {
           outgoingRequest.abort();

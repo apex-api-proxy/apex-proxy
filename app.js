@@ -1,17 +1,25 @@
 const express = require('express');
-const { requestTracer } = require('./middleware/tracer');
 const logger = require('morgan');
-const { createLogsDbClient, assignLogsDbClient } = require('./middleware/apexLogger');
+
+const { requestTracer } = require('./middleware/tracer');
+
+const {
+  connectToLogsDb,
+  assignLogsDbConnection,
+  createLogsQueue,
+} = require('./middleware/apexLogger');
 
 const indexRouter = require('./routes/index');
 
 const app = express();
 
-app.use(requestTracer());
 app.use(logger('dev'));
 
-const logsDbClient = createLogsDbClient();
-app.use(assignLogsDbClient(logsDbClient));
+app.use(requestTracer());
+
+const logsDbConnection = connectToLogsDb();
+app.use(assignLogsDbConnection(logsDbConnection));
+app.use(createLogsQueue());
 
 app.use('/', indexRouter);
 

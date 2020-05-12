@@ -1,52 +1,57 @@
 require('dotenv').config();
 const { Pool } = require('pg');
-// const timestamp = require('../helpers/timestamp');
+const sql = require('sql');
 
-class LogSendersQueue {
+sql.setDialect('postgres');
+
+class LogsQueue {
   constructor() {
     this.queue = [];
   }
 
-  enqueue(logSender) {
-    this.queue.push(logSender);
+  enqueue(log) {
+    if (log.body && log.body.constructor === Buffer) {
+      log.body = log.body.toString('hex');
+    }
+
+    this.queue.push(log);
   }
 
   dequeue() {
     return this.queue.shift();
   }
 
-  sendAllLogs = (client) => {
-    if (this.queue.length > 0) {
-      const logSender = this.dequeue();
+  sendAllLogs(client) {
+    const logs = sql.define({
+      name: 'apex_logs',
+      columns: [
+        'timestamp',
+        'correlation_id',
+        'headers',
+        'body',
+        'status_code',
+        'method',
+        'host',
+        'port',
+        'path',
+      ],
+    });
 
-      logSender().then(() => {
-        this.sendAllLogs(client);
+    const query = logs.insert(this.queue).toQuery();
+
+    return client
+      .query(query)
+      .then((result) => {
+        console.log('Successfully wrote all logs to logs database');
+      })
+      .catch((err) => {
+        console.log('An error occurred while writing to the logs database:');
+        console.log(err);
       });
-    }
-  };
+  }
 }
 
-const assignLogsDbClient = (client) => {
-  return (incomingRequest, outgoingResponse, next) => {
-    // const pool = new Pool();
-
-    // pool.on('error', (err, client) => {
-    //   console.log('An error occurred while connecting to logs database:');
-    //   console.log(err);
-    //   console.error('Unexpected error on idle client', err);
-    //   process.exit(-1);
-    // });
-
-    // outgoingResponse.locals.connectToLogsDb = pool.connect();
-    outgoingResponse.locals.connectToLogsDb = client;
-
-    outgoingResponse.locals.logSendersQueue = new LogSendersQueue();
-
-    next();
-  };
-};
-
-const createLogsDbClient = () => {
+const connectToLogsDb = () => {
   const pool = new Pool();
 
   pool.on('error', (err, client) => {
@@ -59,64 +64,37 @@ const createLogsDbClient = () => {
   return pool.connect();
 };
 
+const assignLogsDbConnection = (logsDbConnection) => {
+  return (incomingRequest, outgoingResponse, next) => {
+    outgoingResponse.locals.connectToLogsDb = logsDbConnection;
+
+    next();
+  };
+};
+
+const createLogsQueue = (logsDbConnection) => {
+  return (incomingRequest, outgoingResponse, next) => {
+    outgoingResponse.locals.logsQueue = new LogsQueue();
+
+    next();
+  };
+};
+
 const sendAllLogsToDb = () => {
   return (incomingRequest, outgoingResponse, next) => {
-    const logSendersQueue = outgoingResponse.locals.logSendersQueue;
+    const logsQueue = outgoingResponse.locals.logsQueue;
 
     outgoingResponse.locals.connectToLogsDb.then((client) => {
-      logSendersQueue.sendAllLogs(client);
+      logsQueue.sendAllLogs(client);
     });
 
     next();
   };
 };
 
-const sendLog = ({
-  timestamp,
-  client,
-  correlationId,
-  method = null,
-  host = null,
-  port = null,
-  path = null,
-  statusCode = null,
-  headers,
-  body = null,
-} = {}) => {
-  if (body && body.constructor === Buffer) {
-    body = body.toString('hex');
-  }
-
-  const parameterValues = [
-    timestamp,
-    correlationId,
-    method,
-    host,
-    port,
-    path,
-    statusCode,
-    headers,
-    body,
-  ];
-
-  return client
-    .query(
-      'INSERT INTO apex_logs (timestamp, correlation_id, method, host, port, path, status_code, headers, body) ' +
-        'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);',
-      parameterValues,
-    )
-    .then((result) => {
-      console.log('database write succeeded.');
-    })
-    .catch((err) => {
-      console.log('An error occurred while writing to the logs database:');
-      console.log(err);
-    });
-};
-
 module.exports = {
-  createLogsDbClient,
-  assignLogsDbClient,
-  sendLog,
+  connectToLogsDb,
+  assignLogsDbConnection,
+  createLogsQueue,
   sendAllLogsToDb,
 };
